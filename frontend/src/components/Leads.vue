@@ -9,6 +9,8 @@ import {
   Clock, Calendar as CalendarIcon, Link as LinkIcon, CheckSquare, Square, ChevronDown,
   Briefcase, DollarSign, Package
 } from 'lucide-vue-next';
+import { watch, nextTick } from 'vue'
+import L from 'leaflet'
 
 const { showToast } = useNotification();
 
@@ -54,6 +56,7 @@ const modalMode = ref('drag');
 // 2. MODAL ADD/EDIT LEAD
 const showEditModal = ref(false);
 const isEditing = ref(false); 
+const addressInput = ref(null);
 
 // 3. MODAL DETAIL LEAD
 const showDetailModal = ref(false);
@@ -91,8 +94,14 @@ const autoFixUrl = (targetModel, key) => {
 // =======================================================================
 
 const formLead = ref({
-  lead_id: null, property: '', source: '', type: '', 
-  latitude: '', longitude: '', address: '', gp_pic: '', date_in: '',
+  lead_id: null, 
+  property: '', 
+  source: '', 
+  type: '', 
+  coordinates: '', 
+  address: '', 
+  gp_pic: '', 
+  date_in: '',
   pics: [] 
 });
 
@@ -344,6 +353,169 @@ const updateStatus = async (evt, newStatus) => {
   }
 };
 
+// GOOGLE MAP USE
+
+const mapContainer = ref(null)
+const mapSearchQuery = ref('')
+let map = null
+let marker = null
+
+const initLeafletMap = async () => {
+  await nextTick()
+  
+  if (!mapContainer.value) {
+    console.error('❌ Map container belum siap')
+    return
+  }
+
+  // Hapus map lama jika ada
+  if (map) {
+    map.remove()
+  }
+
+  // ✅ Parse koordinat dari formLead jika ada (saat edit)
+  let initLat = -7.797068
+  let initLng = 110.370529
+  
+  if (formLead.value.coordinates) {
+    const coords = formLead.value.coordinates.split(',')
+    if (coords.length === 2) {
+      initLat = parseFloat(coords[0].trim())
+      initLng = parseFloat(coords[1].trim())
+    }
+  }
+
+  console.log('✅ Inisialisasi Leaflet Map...')
+
+  // Inisialisasi peta
+  map = L.map(mapContainer.value).setView([initLat, initLng], 14)
+
+  // Tambahkan tile layer OpenStreetMap
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map)
+
+  // Tambahkan marker yang bisa di-drag
+  marker = L.marker([initLat, initLng], {
+    draggable: true
+  }).addTo(map)
+
+  // ✅ Event saat marker di-drag
+  marker.on('dragend', async () => {
+    const pos = marker.getLatLng()
+    const lat = pos.lat.toFixed(6)
+    const lng = pos.lng.toFixed(6)
+    
+    // Simpan dalam format "lat,lng"
+    formLead.value.coordinates = `${lat},${lng}`
+    
+    await reverseGeocode(pos.lat, pos.lng)
+  })
+
+  // ✅ Event klik map untuk pindahkan marker
+  map.on('click', (e) => {
+    marker.setLatLng(e.latlng)
+    const lat = e.latlng.lat.toFixed(6)
+    const lng = e.latlng.lng.toFixed(6)
+    
+    // Simpan dalam format "lat,lng"
+    formLead.value.coordinates = `${lat},${lng}`
+    
+    reverseGeocode(e.latlng.lat, e.latlng.lng)
+  })
+
+  // Paksa resize map
+  setTimeout(() => {
+    map.invalidateSize()
+    console.log('✅ Map ready!')
+  }, 300)
+}
+
+// ✅ Search lokasi
+const searchLocation = async () => {
+  const query = mapSearchQuery.value.trim()
+  
+  console.log('🔍 Mencari:', query)
+  
+  if (!query) {
+    showToast('warning', 'Masukkan lokasi yang ingin dicari')
+    return
+  }
+
+  if (!map || !marker) {
+    showToast('error', 'Map belum siap')
+    return
+  }
+
+  try {
+    showToast('info', 'Mencari lokasi...')
+    
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`
+    )
+    
+    const results = await response.json()
+    console.log('📦 Hasil pencarian:', results)
+
+    if (results.length > 0) {
+      const place = results[0]
+      const lat = parseFloat(place.lat).toFixed(6)
+      const lon = parseFloat(place.lon).toFixed(6)
+
+      console.log('📍 Pindah ke:', lat, lon)
+
+      // Update map dan marker
+      map.setView([lat, lon], 16)
+      marker.setLatLng([lat, lon])
+
+      // ✅ Simpan dalam format "lat,lng"
+      formLead.value.coordinates = `${lat},${lon}`
+      formLead.value.address = place.display_name
+
+      showToast('success', '✅ Lokasi ditemukan!')
+      mapSearchQuery.value = ''
+    } else {
+      showToast('warning', '⚠️ Lokasi tidak ditemukan')
+    }
+  } catch (error) {
+    console.error('❌ Error:', error)
+    showToast('error', 'Gagal mencari lokasi')
+  }
+}
+
+// ✅ Reverse geocode
+const reverseGeocode = async (lat, lng) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+    )
+    const result = await response.json()
+
+    if (result && result.display_name) {
+      formLead.value.address = result.display_name
+    }
+  } catch (error) {
+    console.error('❌ Reverse geocode error:', error)
+  }
+}
+
+// Watch modal
+watch(showEditModal, async (val) => {
+  if (val) {
+    await nextTick()
+    setTimeout(() => {
+      initLeafletMap()
+    }, 100)
+  } else {
+    if (map) {
+      map.remove()
+      map = null
+      marker = null
+    }
+  }
+})
+
 // =======================================================================
 // API & LOGIC: ACTIVITY LOG (LAYER 1 & 2)
 // =======================================================================
@@ -445,6 +617,30 @@ const deleteActivityItem = async (id) => {
 };
 
 onMounted(() => { fetchLeads(); });
+
+onMounted(() => {
+  if (!window.google || !addressInput.value) return;
+
+  const autocomplete = new google.maps.places.Autocomplete(
+    addressInput.value,
+    {
+      fields: ['formatted_address', 'geometry'],
+    }
+  );
+
+  autocomplete.addListener('place_changed', () => {
+    const place = autocomplete.getPlace();
+
+    if (!place.geometry) return;
+
+    // Simpan alamat sebagai STRING (varchar)
+    formLead.address = place.formatted_address;
+
+    // Simpan koordinat (opsional tapi biasanya dibutuhkan)
+    formLead.latitude = place.geometry.location.lat();
+    formLead.longitude = place.geometry.location.lng();
+  });
+});
 </script>
 
 <template>
@@ -908,44 +1104,140 @@ onMounted(() => { fetchLeads(); });
 
     <Teleport to="body">
       <div v-if="showEditModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl my-8 relative animate-fade-in-up">
+       <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] my-8 relative animate-fade-in-up flex flex-col">
           <div class="sticky top-0 bg-white p-6 border-b z-10 flex justify-between items-center rounded-t-xl">
             <h3 class="text-xl font-bold text-gray-800">{{ isEditing ? 'Edit Data Lead' : 'Tambah Lead Baru' }}</h3>
             <button @click="closeModal" class="text-gray-400 hover:text-gray-600"><X :size="24" /></button>
           </div>
-          <form @submit.prevent="handleGenericSubmit" class="p-6 space-y-6">
-            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Informasi Properti</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2"><label class="label">Nama Properti</label><input v-model="formLead.property" type="text" class="input" required></div>
-                <div><label class="label">Source</label><select v-model="formLead.source" class="input"><option v-for="src in inboundSources" :key="src" :value="src">{{ src }} (Inbound)</option><option value="Cold Calling">Cold Calling</option><option value="Canvassing">Canvassing</option><option value="Campaign">Campaign</option><option value="Free Trial">Free Trial</option><option value="Relational">Relational</option></select></div>
-                <div><label class="label">Type</label><input v-model="formLead.type" type="text" class="input"></div>
-                <div>
-                  <label class="label">GuestPro PIC</label>
-                  <select v-model="formLead.gp_pic" class="input" required>
-                    <option v-for="pic in picList" :key="pic" :value="pic">{{ pic }}</option>
-                  </select>
+          <div class="overflow-y-auto flex-1 p-6">
+            <form @submit.prevent="handleGenericSubmit" class="p-6 space-y-6">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h4 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Informasi Properti</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="md:col-span-2">
+                    <label class="label">Nama Properti</label>
+                    <input v-model="formLead.property" type="text" class="input" required>
+                  </div>
+                  
+                  <div>
+                    <label class="label">Source</label>
+                    <select v-model="formLead.source" class="input">
+                      <option v-for="src in inboundSources" :key="src" :value="src">{{ src }} (Inbound)</option>
+                      <option value="Cold Calling">Cold Calling</option>
+                      <option value="Canvassing">Canvassing</option>
+                      <option value="Campaign">Campaign</option>
+                      <option value="Free Trial">Free Trial</option>
+                      <option value="Relational">Relational</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label class="label">Type</label>
+                    <input v-model="formLead.type" type="text" class="input">
+                  </div>
+                  
+                  <div>
+                    <label class="label">GuestPro PIC</label>
+                    <select v-model="formLead.gp_pic" class="input" required>
+                      <option v-for="pic in picList" :key="pic" :value="pic">{{ pic }}</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label class="label">Date In</label>
+                    <input v-model="formLead.date_in" type="date" class="input" required>
+                  </div>
+                  
+                  <!--  KOORDINAT JADI 1 FIELD -->
+                  <div class="md:col-span-2">
+                    <label class="label">Koordinat (Latitude, Longitude)</label>
+                    <input 
+                      v-model="formLead.coordinates" 
+                      type="text" 
+                      class="input font-mono text-sm" 
+                      placeholder="contoh: -7.797068, 110.370529"
+                      readonly
+                    >
+                    <p class="text-xs text-gray-500 mt-1">💡 Gunakan peta di bawah untuk memilih lokasi</p>
+                  </div>
+                  
+                  <!-- MAP SECTION -->
+                  <div class="md:col-span-2">
+                    <label class="label">Alamat Lengkap</label>
+                    
+                    <!-- Search Box -->
+                    <div class="flex gap-2 mb-2">
+                      <input
+                        v-model="mapSearchQuery"
+                        type="text"
+                        class="input flex-1"
+                        placeholder="Cari lokasi (contoh: Malioboro Yogyakarta)"
+                        @keyup.enter="searchLocation"
+                      />
+                      <button 
+                        type="button" 
+                        @click="searchLocation" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium whitespace-nowrap"
+                      >
+                        Cari
+                      </button>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div
+                      ref="mapContainer"
+                      class="w-full h-64 rounded-lg border border-gray-300 mb-3"
+                    ></div>
+
+                    <!-- Info Card -->
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+                      <div class="flex items-start gap-3">
+                        <div class="text-3xl"></div>
+                        <div class="flex-1 space-y-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-gray-600 uppercase">Koordinat:</span>
+                            <span class="font-mono text-sm text-gray-800 bg-white px-2 py-1 rounded border">
+                              {{ formLead.coordinates || 'Belum dipilih' }}
+                            </span>
+                          </div>
+                          <div class="flex items-start gap-2">
+                            <span class="text-xs font-bold text-gray-600 uppercase shrink-0">Alamat:</span>
+                            <span class="text-sm text-gray-700">
+                              {{ formLead.address || 'Klik/drag marker atau search untuk memilih lokasi' }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Input Manual Alamat -->
+                    <div class="mt-3">
+                      <label class="label">Edit Alamat Manual (Opsional)</label>
+                      <textarea 
+                        v-model="formLead.address" 
+                        rows="2" 
+                        class="input text-sm" 
+                        placeholder="Atau ketik/edit alamat manual di sini..."
+                      ></textarea>
+                    </div>
+                  </div>
                 </div>
-                <div><label class="label">Date In</label><input v-model="formLead.date_in" type="date" class="input" required></div>
-                <div><label class="label">Latitude</label><input v-model="formLead.latitude" type="text" class="input"></div>
-                <div><label class="label">Longitude</label><input v-model="formLead.longitude" type="text" class="input"></div>
-                <div class="md:col-span-2"><label class="label">Alamat Lengkap</label><textarea v-model="formLead.address" class="input" rows="2"></textarea></div>
               </div>
-            </div>
-            <div class="border border-gray-200 rounded-lg overflow-hidden">
-              <div class="bg-gray-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center"><h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Daftar PIC</h4><button type="button" @click="addPicRowEdit" class="text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 flex items-center gap-1 transition"><Plus :size="14"/> Tambah PIC</button></div>
-              <div class="p-4 space-y-3 max-h-64 overflow-y-auto bg-gray-50">
-                <div v-for="(pic, index) in formLead.pics" :key="index" class="flex gap-2 items-start bg-white p-2 rounded border shadow-sm">
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1"><input v-model="pic.pic_name" type="text" class="input-sm" placeholder="Nama PIC" required><input v-model="pic.phone_number" type="text" class="input-sm" placeholder="No HP"><input v-model="pic.whatsapp" type="text" class="input-sm" placeholder="WhatsApp"><input v-model="pic.email" type="email" class="input-sm" placeholder="Email"></div>
-                  <button type="button" @click="removePicRowEdit(index)" class="text-red-500 hover:bg-red-100 p-1.5 rounded transition mt-0.5"><Trash2 :size="16" /></button>
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center"><h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Daftar PIC</h4><button type="button" @click="addPicRowEdit" class="text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 flex items-center gap-1 transition"><Plus :size="14"/> Tambah PIC</button></div>
+                <div class="p-4 space-y-3 max-h-64 overflow-y-auto bg-gray-50">
+                  <div v-for="(pic, index) in formLead.pics" :key="index" class="flex gap-2 items-start bg-white p-2 rounded border shadow-sm">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1"><input v-model="pic.pic_name" type="text" class="input-sm" placeholder="Nama PIC" required><input v-model="pic.phone_number" type="text" class="input-sm" placeholder="No HP"><input v-model="pic.whatsapp" type="text" class="input-sm" placeholder="WhatsApp"><input v-model="pic.email" type="email" class="input-sm" placeholder="Email"></div>
+                    <button type="button" @click="removePicRowEdit(index)" class="text-red-500 hover:bg-red-100 p-1.5 rounded transition mt-0.5"><Trash2 :size="16" /></button>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="pt-4 flex justify-end gap-3 border-t">
-              <button type="button" @click="closeModal" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition">Batal</button>
-              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow flex items-center gap-2 transition"><Save :size="16" /> Simpan</button>
-            </div>
-          </form>
+              <div class="pt-4 flex justify-end gap-3 border-t">
+                <button type="button" @click="closeModal" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow flex items-center gap-2 transition"><Save :size="16" /> Simpan</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -982,4 +1274,7 @@ onMounted(() => { fetchLeads(); });
 .input-sm { @apply w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-in-up { animation: fadeInUp 0.3s ease-out; }
+.pac-container {
+  z-index: 9999 !important;
+}
 </style>
