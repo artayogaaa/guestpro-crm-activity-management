@@ -11,8 +11,7 @@ class Lead(models.Model):
     property = models.CharField(max_length=200)
     source = models.CharField(max_length=100, blank=True)
     type = models.CharField(max_length=100, blank=True)
-    latitude = models.CharField(max_length=50, blank=True, null=True)
-    longitude = models.CharField(max_length=50, blank=True, null=True)
+    coordinates = models.CharField(max_length=100, blank=True, null=True)
     address = models.TextField(blank=True)
     gp_pic = models.CharField(max_length=100)
     date_in = models.DateField()
@@ -26,8 +25,13 @@ class Lead(models.Model):
         ('retention', 'Retention'),
     ]
     status_kanban = models.CharField(max_length=50, choices=STATUS_KANBAN_CHOICES, default='lead_generation')
+    referral_or_affiliate_by = models.CharField(max_length=150, blank=True, null=True)
+    commission_amount = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'lead'
     def save(self, *args, **kwargs):
         if not self.lead_id:
             raw_string = f"{time.time()}-{random.randint(1000, 9999)}"
@@ -45,6 +49,9 @@ class LeadPIC(models.Model):
     whatsapp = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
 
+    class Meta:
+        db_table = 'lead_pic'
+
 class FollowUp(models.Model):
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
     pic_gp = models.CharField(max_length=100)
@@ -58,6 +65,9 @@ class FollowUp(models.Model):
     notes = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'follow_up'
 
 class Meeting(models.Model):
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
@@ -75,6 +85,8 @@ class Meeting(models.Model):
     mom = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        db_table = 'meeting'
     # ... (model Lead, LeadPIC, FollowUp, Meeting yang sudah ada)
 
 class Quotation(models.Model):
@@ -86,6 +98,9 @@ class Quotation(models.Model):
     is_send = models.BooleanField(default=False) # Status terkirim atau belum
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'quotation'
 
 def generate_deal_id():
     return 'D-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
@@ -124,6 +139,9 @@ class Deal(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'deal'
+
     def __str__(self):
         return f"{self.deal_id} - {self.lead.property}"
 
@@ -144,5 +162,7 @@ class DealDetail(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'deal_detail'
     def __str__(self):
         return f"Quote for {self.lead}"
