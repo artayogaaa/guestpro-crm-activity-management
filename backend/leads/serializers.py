@@ -16,8 +16,9 @@ class LeadSerializer(serializers.ModelSerializer):
         model = Lead
         fields = [
             'lead_id', 'property', 'source', 'type', 
-            'latitude', 'longitude', 'address', 'gp_pic', 
-            'date_in', 'status_kanban', 'pics'
+            'coordinates', 'address', 'gp_pic',
+            'date_in', 'status_kanban', 'pics',
+            'referral_or_affiliate_by', 'commission_amount'
         ]
 
     def create(self, validated_data):
