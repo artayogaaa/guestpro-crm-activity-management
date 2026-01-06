@@ -341,8 +341,8 @@ const initLeafletMap = async () => {
   }
 
   // ✅ Parse koordinat dari formLead jika ada (saat edit)
-  let initLat = -7.797068
-  let initLng = 110.370529
+  let initLat = -8.568317900635176
+  let initLng = 115.29492229863575
   
   if (formLead.value.coordinates) {
     const coords = formLead.value.coordinates.split(',')
@@ -1133,7 +1133,7 @@ onMounted(() => {
                         v-model="mapSearchQuery"
                         type="text"
                         class="input flex-1"
-                        placeholder="Cari lokasi (contoh: Malioboro Yogyakarta)"
+                        placeholder="Cari lokasi ( contoh : Bandara Ngurah Rai )"
                         @keyup.enter="searchLocation"
                       />
                       <button 
@@ -1214,7 +1214,7 @@ onMounted(() => {
           <div class="p-6 overflow-y-auto max-h-[80vh]">
             <div class="grid grid-cols-2 gap-6 mb-6">
               <div class="space-y-3"><div><label class="text-xs font-bold text-gray-400 uppercase">Source</label><p class="text-sm font-medium text-gray-700">{{ selectedLead.source }}</p></div><div><label class="text-xs font-bold text-gray-400 uppercase">Address</label><p class="text-sm font-medium text-gray-700 flex items-start gap-1"><MapPin :size="14" class="mt-0.5 text-gray-400"/> {{ selectedLead.address || '-' }}</p></div></div>
-              <div class="space-y-3"><div><label class="text-xs font-bold text-gray-400 uppercase">GuestPro PIC</label><p class="text-sm font-medium text-gray-700 flex items-center gap-1"><User :size="14" class="text-gray-400"/> {{ selectedLead.gp_pic }}</p></div><div><label class="text-xs font-bold text-gray-400 uppercase">Date In</label><p class="text-sm font-medium text-gray-700 flex items-center gap-1"><Calendar :size="14" class="text-gray-400"/> {{ selectedLead.date_in }}</p></div><div><label class="text-xs font-bold text-gray-400 uppercase">Koordinat</label><p class="text-xs font-mono text-gray-500">{{ selectedLead.latitude || '-' }}, {{ selectedLead.longitude || '-' }}</p></div></div>
+              <div class="space-y-3"><div><label class="text-xs font-bold text-gray-400 uppercase">GuestPro PIC</label><p class="text-sm font-medium text-gray-700 flex items-center gap-1"><User :size="14" class="text-gray-400"/> {{ selectedLead.gp_pic }}</p></div><div><label class="text-xs font-bold text-gray-400 uppercase">Date In</label><p class="text-sm font-medium text-gray-700 flex items-center gap-1"><Calendar :size="14" class="text-gray-400"/> {{ selectedLead.date_in }}</p></div><div><label class="text-xs font-bold text-gray-400 uppercase">Koordinat</label><p class="text-xs font-mono text-gray-500">{{ selectedLead.coordinates || '-' }}</p></div></div>
             </div>
             <div class="border rounded-lg overflow-hidden">
               <div class="bg-gray-100 px-4 py-2 border-b text-xs font-bold text-gray-600 uppercase">Daftar Contact Person (PIC)</div>
