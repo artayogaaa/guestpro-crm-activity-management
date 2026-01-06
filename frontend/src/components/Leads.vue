@@ -12,6 +12,13 @@ import {
 import { watch, nextTick } from 'vue'
 import L from 'leaflet'
 
+const formatWhatsapp = (number) => {
+  if (!number) return ''
+  return number
+    .replace(/\D/g, '')
+    .replace(/^0/, '62')       
+}
+
 const { showToast } = useNotification();
 
 // =======================================================================
@@ -320,12 +327,37 @@ const updateStatus = async (evt, newStatus) => {
   if (evt.added) { const item = evt.added.element; try { await api.patch(`leads/${item.lead_id}/`, { status_kanban: newStatus }); } catch (error) { showToast('error', 'Gagal update status'); } }
 };
 
-// GOOGLE MAP USE
+// =======================================================================
+// LEAFLET MAP
+// =======================================================================
 
 const mapContainer = ref(null)
 const mapSearchQuery = ref('')
 let map = null
 let marker = null
+
+const cleanAddress = (fullAddress) => {
+  if (!fullAddress) return '';
+
+  const parts = fullAddress
+    .split(',')
+    .map(p => p.trim());
+
+  // Cari index bagian yang mengandung kata jalan
+  const streetIndex = parts.findIndex(part =>
+    /^(jalan|jl\.?|street|road)\b/i.test(part)
+  );
+
+  // Kalau tidak ketemu jalan, fallback: buang part pertama
+  if (streetIndex === -1) {
+    return parts.slice(1).join(', ');
+  }
+
+  // Ambil dari jalan sampai akhir
+  return parts.slice(streetIndex).join(', ');
+};
+
+
 
 const initLeafletMap = async () => {
   await nextTick()
@@ -335,14 +367,13 @@ const initLeafletMap = async () => {
     return
   }
 
-  // Hapus map lama jika ada
   if (map) {
     map.remove()
   }
 
-  // ✅ Parse koordinat dari formLead jika ada (saat edit)
-  let initLat = -8.568317900635176
-  let initLng = 115.29492229863575
+  // Parse koordinat dari formLead jika ada
+  let initLat = -7.797068
+  let initLng = 110.370529
   
   if (formLead.value.coordinates) {
     const coords = formLead.value.coordinates.split(',')
@@ -352,58 +383,51 @@ const initLeafletMap = async () => {
     }
   }
 
-  console.log('✅ Inisialisasi Leaflet Map...')
+  console.log('Inisialisasi Leaflet Map...')
 
-  // Inisialisasi peta
   map = L.map(mapContainer.value).setView([initLat, initLng], 14)
 
-  // Tambahkan tile layer OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 19
   }).addTo(map)
 
-  // Tambahkan marker yang bisa di-drag
   marker = L.marker([initLat, initLng], {
     draggable: true
   }).addTo(map)
 
-  // ✅ Event saat marker di-drag
   marker.on('dragend', async () => {
     const pos = marker.getLatLng()
     const lat = pos.lat.toFixed(6)
     const lng = pos.lng.toFixed(6)
     
-    // Simpan dalam format "lat,lng"
     formLead.value.coordinates = `${lat},${lng}`
-    
     await reverseGeocode(pos.lat, pos.lng)
   })
 
-  // ✅ Event klik map untuk pindahkan marker
   map.on('click', (e) => {
     marker.setLatLng(e.latlng)
     const lat = e.latlng.lat.toFixed(6)
     const lng = e.latlng.lng.toFixed(6)
     
-    // Simpan dalam format "lat,lng"
     formLead.value.coordinates = `${lat},${lng}`
-    
     reverseGeocode(e.latlng.lat, e.latlng.lng)
   })
 
-  // Paksa resize map
   setTimeout(() => {
     map.invalidateSize()
-    console.log('✅ Map ready!')
+    console.log('Map ready!')
   }, 300)
 }
 
-// ✅ Search lokasi
 const searchLocation = async () => {
+if (!map || !marker) {
+    console.warn('⏳ Map belum siap, init dulu')
+    initLeafletMap()
+    return
+  }
+
   const query = mapSearchQuery.value.trim()
-  
-  console.log('🔍 Mencari:', query)
   
   if (!query) {
     showToast('warning', 'Masukkan lokasi yang ingin dicari')
@@ -423,22 +447,23 @@ const searchLocation = async () => {
     )
     
     const results = await response.json()
-    console.log('📦 Hasil pencarian:', results)
 
     if (results.length > 0) {
       const place = results[0]
       const lat = parseFloat(place.lat).toFixed(6)
       const lon = parseFloat(place.lon).toFixed(6)
 
-      console.log('📍 Pindah ke:', lat, lon)
-
-      // Update map dan marker
       map.setView([lat, lon], 16)
       marker.setLatLng([lat, lon])
 
-      // ✅ Simpan dalam format "lat,lng"
       formLead.value.coordinates = `${lat},${lon}`
-      formLead.value.address = place.display_name
+      
+      // ✅ Bersihkan address
+      const cleanedAddress = cleanAddress(place.display_name, formLead.value.property)
+      formLead.value.address = cleanedAddress
+
+      console.log('Original:', place.display_name)
+      console.log(' Cleaned:', cleanedAddress)
 
       showToast('success', '✅ Lokasi ditemukan!')
       mapSearchQuery.value = ''
@@ -451,37 +476,144 @@ const searchLocation = async () => {
   }
 }
 
-// ✅ Reverse geocode
+// Reverse geocode
 const reverseGeocode = async (lat, lng) => {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
     )
     const result = await response.json()
 
     if (result && result.display_name) {
-      formLead.value.address = result.display_name
+      // ✅ Bersihkan address
+      const cleanedAddress = cleanAddress(result.display_name, formLead.value.property)
+      formLead.value.address = cleanedAddress
+      
+      console.log('📍 Original:', result.display_name)
+      console.log('✨ Cleaned:', cleanedAddress)
     }
   } catch (error) {
     console.error('❌ Reverse geocode error:', error)
   }
 }
 
-// Watch modal
-watch(showEditModal, async (val) => {
-  if (val) {
-    await nextTick()
-    setTimeout(() => {
-      initLeafletMap()
-    }, 100)
-  } else {
-    if (map) {
-      map.remove()
-      map = null
-      marker = null
+// watch(showEditModal, async (val) => {
+//   if (val) {
+//     await nextTick()
+//     setTimeout(() => {
+//       initLeafletMap()
+//     }, 100)
+//   } else {
+//     if (map) {
+//       map.remove()
+//       map = null
+//       marker = null
+//     }
+//   }
+// })
+
+watch(
+  [showEditModal, showInputModal],
+  async ([leadOpen, meetingOpen]) => {
+    if (
+      leadOpen ||
+      (
+        meetingOpen &&
+        activityTab === 'meeting' &&
+        formActivity.meeting_type === 'Visit Meeting'
+      )
+    ) {
+      await nextTick()
+      setTimeout(() => {
+        initLeafletMap()
+      }, 200)
     }
   }
-})
+)
+
+// =======================================================================
+// MEETING MAP
+// =======================================================================
+const meetingMapContainer = ref(null)
+const meetingSearchQuery = ref('')
+
+let meetingMap = null
+let meetingMarker = null
+
+const initMeetingMap = async () => {
+  await nextTick()
+
+  if (!meetingMapContainer.value) {
+    console.warn('meetingMapContainer belum ada')
+    return
+  }
+
+  if (meetingMap) {
+    meetingMap.remove()
+    meetingMap = null
+  }
+
+  const [lat, lng] = formActivity.coordinates
+    ? formActivity.coordinates.split(',').map(Number)
+    : [-7.797068, 110.370529]
+
+  meetingMap = L.map(meetingMapContainer.value).setView([lat, lng], 14)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(meetingMap)
+
+  meetingMarker = L.marker([lat, lng], { draggable: true }).addTo(meetingMap)
+
+  meetingMarker.on('dragend', () => {
+    const pos = meetingMarker.getLatLng()
+    updateMeetingLocation(pos.lat, pos.lng)
+  })
+
+  meetingMap.on('click', (e) => {
+    meetingMarker.setLatLng(e.latlng)
+    updateMeetingLocation(e.latlng.lat, e.latlng.lng)
+  })
+
+  setTimeout(() => meetingMap.invalidateSize(), 300)
+}
+
+const updateMeetingLocation = async (lat, lng) => {
+  formActivity.coordinates = `${lat.toFixed(6)},${lng.toFixed(6)}`
+
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+  )
+  const data = await res.json()
+
+  if (data?.display_name) {
+    formActivity.location = data.display_name
+  }
+}
+
+const searchMeetingLocation = async () => {
+  if (!meetingMap || !meetingMarker) return
+
+  const q = meetingSearchQuery.value.trim()
+  if (!q) return
+
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`
+  )
+  const data = await res.json()
+
+  if (!data.length) return
+
+  const lat = parseFloat(data[0].lat)
+  const lng = parseFloat(data[0].lon)
+
+  meetingMap.setView([lat, lng], 16)
+  meetingMarker.setLatLng([lat, lng])
+  updateMeetingLocation(lat, lng)
+
+  meetingSearchQuery.value = ''
+}
+
 
 // =======================================================================
 // ACTIVITY LOG
@@ -560,12 +692,24 @@ onMounted(() => {
         
         <div class="bg-blue-50/50 p-2 rounded-lg border border-blue-100 flex-1 flex flex-col">
           <div class="flex justify-between items-center mb-2"><h4 class="text-xs font-bold text-blue-600 uppercase tracking-wide">Inbound</h4><span class="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">{{ leadsGenInbound.length }}</span></div>
-          <draggable v-model="leadsGenInbound" group="leads" item-key="lead_id" class="flex-1 flex flex-col gap-2 min-h-[50px]"><template #item="{element}"><div @dblclick="openDetailModal(element)" class="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move hover:shadow-md transition relative group select-none"><div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded p-0.5 shadow z-10"><button @click.stop="openModal(element)" class="text-blue-500 hover:bg-blue-100 p-1 rounded"><Edit :size="14" /></button><button @click.stop="deleteLead(element.lead_id)" class="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 :size="14" /></button></div><div class="font-bold text-gray-800 text-sm mb-1 pr-12">{{ element.property }}</div><div class="text-xs text-blue-500 mb-2">{{ element.source }}</div><div class="text-xs text-gray-500 flex items-center gap-1"><User :size="12"/> {{ element.gp_pic }}</div></div></template></draggable>
+          <draggable 
+            v-model="leadsGenInbound" 
+            :group="{ name: 'leads', put: false }"  
+            item-key="lead_id" 
+            class="flex-1 flex flex-col gap-2 min-h-[50px]"
+          >
+          <template #item="{element}"><div @dblclick="openDetailModal(element)" class="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move hover:shadow-md transition relative group select-none"><div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded p-0.5 shadow z-10"><button @click.stop="openModal(element)" class="text-blue-500 hover:bg-blue-100 p-1 rounded"><Edit :size="14" /></button><button @click.stop="deleteLead(element.lead_id)" class="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 :size="14" /></button></div><div class="font-bold text-gray-800 text-sm mb-1 pr-12">{{ element.property }}</div><div class="text-xs text-blue-500 mb-2">{{ element.source }}</div><div class="text-xs text-gray-500 flex items-center gap-1"><User :size="12"/> {{ element.gp_pic }}</div></div></template></draggable>  
         </div>
 
         <div class="bg-orange-50/50 p-2 rounded-lg border border-orange-100 flex-1 flex flex-col mt-2">
           <div class="flex justify-between items-center mb-2"><h4 class="text-xs font-bold text-orange-600 uppercase tracking-wide">Outbound</h4><span class="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">{{ leadsGenOutbound.length }}</span></div>
-          <draggable v-model="leadsGenOutbound" group="leads" item-key="lead_id" class="flex-1 flex flex-col gap-2 min-h-[50px]"><template #item="{element}"><div @dblclick="openDetailModal(element)" class="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move hover:shadow-md transition relative group select-none"><div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded p-0.5 shadow z-10"><button @click.stop="openModal(element)" class="text-blue-500 hover:bg-blue-100 p-1 rounded"><Edit :size="14" /></button><button @click.stop="deleteLead(element.lead_id)" class="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 :size="14" /></button></div><div class="font-bold text-gray-800 text-sm mb-1 pr-12">{{ element.property }}</div><div class="text-xs text-orange-500 mb-2">{{ element.source }}</div><div class="text-xs text-gray-500 flex items-center gap-1"><User :size="12"/> {{ element.gp_pic }}</div></div></template></draggable>
+          <draggable 
+              v-model="leadsGenOutbound" 
+              :group="{ name: 'leads', put: false }"  
+              item-key="lead_id" 
+              class="flex-1 flex flex-col gap-2 min-h-[50px]"
+            >
+          <template #item="{element}"><div @dblclick="openDetailModal(element)" class="bg-white p-3 rounded shadow-sm border border-gray-200 cursor-move hover:shadow-md transition relative group select-none"><div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded p-0.5 shadow z-10"><button @click.stop="openModal(element)" class="text-blue-500 hover:bg-blue-100 p-1 rounded"><Edit :size="14" /></button><button @click.stop="deleteLead(element.lead_id)" class="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 :size="14" /></button></div><div class="font-bold text-gray-800 text-sm mb-1 pr-12">{{ element.property }}</div><div class="text-xs text-orange-500 mb-2">{{ element.source }}</div><div class="text-xs text-gray-500 flex items-center gap-1"><User :size="12"/> {{ element.gp_pic }}</div></div></template></draggable>
         </div>
       </div>
 
@@ -706,7 +850,46 @@ onMounted(() => {
             </div>
             <div class="border rounded-lg overflow-hidden">
               <div class="bg-gray-100 px-4 py-2 border-b text-xs font-bold text-gray-600 uppercase">Daftar Contact Person (PIC)</div>
-              <table class="w-full text-sm"><tbody class="divide-y divide-gray-100"><tr v-for="pic in selectedLead.pics" :key="pic.id" class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">{{ pic.pic_name }}</td><td class="p-3 text-gray-600">{{ pic.phone_number }}</td><td class="p-3 text-green-600">{{ pic.whatsapp }}</td><td class="p-3 text-blue-600">{{ pic.email }}</td></tr><tr v-if="!selectedLead.pics || selectedLead.pics.length === 0"><td class="p-4 text-center text-gray-400 italic">Tidak ada data PIC</td></tr></tbody></table>
+              <table class="w-full text-sm">
+                <tbody class="divide-y divide-gray-100">
+                  <tr
+                    v-for="pic in selectedLead.pics"
+                    :key="pic.id"
+                    class="hover:bg-gray-50"
+                  >
+                    <td class="p-3 font-medium text-gray-800">
+                      {{ pic.pic_name }}
+                    </td>
+
+                    <td class="p-3 text-gray-600">
+                      {{ pic.phone_number }}
+                    </td>
+
+                    <td class="p-3 text-green-600">
+                      <a
+                        v-if="pic.whatsapp"
+                        :href="`https://wa.me/${formatWhatsapp(pic.whatsapp)}`"
+                        target="_blank"
+                        rel="noopener"
+                        class="hover:underline font-semibold"
+                      >
+                        {{ pic.whatsapp }}
+                      </a>
+                      <span v-else>-</span>
+                    </td>
+
+                    <td class="p-3 text-blue-600">
+                      {{ pic.email }}
+                    </td>
+                  </tr>
+
+                  <tr v-if="!selectedLead.pics || selectedLead.pics.length === 0">
+                    <td colspan="4" class="p-4 text-center text-gray-400 italic">
+                      Tidak ada data PIC
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           <div class="bg-gray-50 p-4 border-t flex justify-end"><button @click="closeDetailModal" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition">Tutup</button></div>
@@ -1031,12 +1214,61 @@ onMounted(() => {
               </div>
 
               <div v-if="activityTab === 'meeting'" class="space-y-4">
-                <div><label class="label">Meeting Type</label><select v-model="formActivity.meeting_type" class="input"><option>Visit Meeting</option><option>Online Meeting</option><option>Office Visit Meeting</option></select></div>
-                <div v-if="formActivity.meeting_type === 'Visit Meeting'" class="bg-gray-50 p-3 rounded border space-y-3">
-                   <div><label class="label">Location</label><input v-model="formActivity.location" type="text" class="input" placeholder="Nama Lokasi / Alamat"></div>
-                   <div class="grid grid-cols-2 gap-3"><div><label class="label">Latitude</label><input v-model="formActivity.latitude" type="text" class="input"></div><div><label class="label">Longitude</label><input v-model="formActivity.longitude" type="text" class="input"></div></div>
+                <div>
+                  <label class="label">Meeting Type</label>
+                  <select v-model="formActivity.meeting_type" class="input">
+                    <option>Visit Meeting</option>
+                    <option>Online Meeting</option>
+                    <option>Office Visit Meeting</option>
+                  </select>
                 </div>
-                <div><label class="label">MOM</label><textarea v-model="formActivity.mom" rows="4" class="input" placeholder="Minutes of Meeting..."></textarea></div>
+
+                <div
+                  v-if="formActivity.meeting_type === 'Visit Meeting'"
+                  class="space-y-4"
+                >
+                  <label class="label">Lokasi Meeting (Pilih di Peta)</label>
+
+                  <!-- SEARCH -->
+                  <div class="flex gap-2">
+                    <input
+                      v-model="meetingSearchQuery"
+                      type="text"
+                      class="input flex-1"
+                      placeholder="Cari lokasi"
+                      @keyup.enter="searchMeetingLocation"
+                    />
+                    <button
+                      type="button"
+                      class="px-4 py-2 bg-blue-600 text-white rounded"
+                      @click="searchMeetingLocation"
+                    >
+                      Cari
+                    </button>
+                  </div>
+
+                  <!-- MAP -->
+                  <div
+                    ref="meetingMapContainer"
+                    class="w-full h-64 rounded-lg border"
+                  ></div>
+
+                  <!-- KOORDINAT (INI YANG KAMU MAU) -->
+                  <div>
+                    <label class="label">Coordinates</label>
+                    <input
+                      v-model="formActivity.coordinates"
+                      type="text"
+                      class="input font-mono"
+                      readonly
+                    />
+                  </div>
+
+                  <!-- ALAMAT -->
+                  <div class="text-sm text-gray-700 bg-gray-50 p-3 rounded border">
+                    {{ formActivity.location || 'Belum dipilih' }}
+                  </div>
+                </div>
               </div>
 
               <div v-if="activityTab === 'quotation'" class="space-y-4">
@@ -1218,7 +1450,19 @@ onMounted(() => {
             </div>
             <div class="border rounded-lg overflow-hidden">
               <div class="bg-gray-100 px-4 py-2 border-b text-xs font-bold text-gray-600 uppercase">Daftar Contact Person (PIC)</div>
-              <table class="w-full text-sm"><tbody class="divide-y divide-gray-100"><tr v-for="pic in selectedLead.pics" :key="pic.id" class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">{{ pic.pic_name }}</td><td class="p-3 text-gray-600">{{ pic.phone_number }}</td><td class="p-3 text-green-600">{{ pic.whatsapp }}</td><td class="p-3 text-blue-600">{{ pic.email }}</td></tr><tr v-if="!selectedLead.pics || selectedLead.pics.length === 0"><td class="p-4 text-center text-gray-400 italic">Tidak ada data PIC</td></tr></tbody></table>
+              <table class="w-full text-sm"><tbody class="divide-y divide-gray-100"><tr v-for="pic in selectedLead.pics" :key="pic.id" class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">{{ pic.pic_name }}</td><td class="p-3 text-gray-600">{{ pic.phone_number }}</td><td class="p-3 text-green-600">
+                <a
+                  v-if="pic.whatsapp"
+                  :href="`https://wa.me/${formatWhatsapp(pic.whatsapp)}`"
+                  target="_blank"
+                  rel="noopener"
+                  class="hover:underline font-semibold"
+                >
+                  {{ pic.whatsapp }}
+                </a>
+                <span v-else>-</span>
+              </td>
+              <td class="p-3 text-blue-600">{{ pic.email }}</td></tr><tr v-if="!selectedLead.pics || selectedLead.pics.length === 0"><td class="p-4 text-center text-gray-400 italic">Tidak ada data PIC</td></tr></tbody></table>
             </div>
           </div>
           <div class="bg-gray-50 p-4 border-t flex justify-end"><button @click="closeDetailModal" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition">Tutup</button></div>
