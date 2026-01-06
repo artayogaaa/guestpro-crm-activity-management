@@ -80,8 +80,7 @@ class Meeting(models.Model):
     stage = models.CharField(max_length=100, default="Follow Up")
     meeting_type = models.CharField(max_length=50)
     location = models.CharField(max_length=255, blank=True, null=True)
-    latitude = models.CharField(max_length=50, blank=True, null=True)
-    longitude = models.CharField(max_length=50, blank=True, null=True)
+    coordinates = models.CharField(max_length=100, blank=True, null=True)
     mom = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
@@ -151,14 +150,9 @@ class DealDetail(models.Model):
     
     package = models.CharField(max_length=100)
     # Product bisa pilih banyak, simpan sebagai string koma (misal: "PMS, Channel Manager")
-    product = models.CharField(max_length=255) 
-    product_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    product_amount_by = models.CharField(max_length=50) # Misal: Month, Year
-    
-    # Initiation
-    initiation = models.CharField(max_length=255) # Multi select disimpan string
-    initiation_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-
+    product_initiation = models.CharField(max_length=255) 
+    product_initiation_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    product_initiation_amount_by = models.CharField(max_length=50) # Misal: Month, Year
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
 
