@@ -44,7 +44,6 @@ const dealTypes = [
 // =======================================================================
 const allLeads = ref([]);
 
-// KANBAN COLUMNS
 const leadsFollowUp = ref([]);
 const leadsQuotation = ref([]);
 const leadsDeals = ref([]);
@@ -343,17 +342,14 @@ const cleanAddress = (fullAddress) => {
     .split(',')
     .map(p => p.trim());
 
-  // Cari index bagian yang mengandung kata jalan
   const streetIndex = parts.findIndex(part =>
     /^(jalan|jl\.?|street|road)\b/i.test(part)
   );
 
-  // Kalau tidak ketemu jalan, fallback: buang part pertama
   if (streetIndex === -1) {
     return parts.slice(1).join(', ');
   }
 
-  // Ambil dari jalan sampai akhir
   return parts.slice(streetIndex).join(', ');
 };
 
@@ -371,7 +367,6 @@ const initLeafletMap = async () => {
     map.remove()
   }
 
-  // Parse koordinat dari formLead jika ada
   let initLat = -7.797068
   let initLng = 110.370529
   
@@ -458,14 +453,13 @@ if (!map || !marker) {
 
       formLead.value.coordinates = `${lat},${lon}`
       
-      // ✅ Bersihkan address
       const cleanedAddress = cleanAddress(place.display_name, formLead.value.property)
       formLead.value.address = cleanedAddress
 
       console.log('Original:', place.display_name)
       console.log(' Cleaned:', cleanedAddress)
 
-      showToast('success', '✅ Lokasi ditemukan!')
+      showToast('success', 'Lokasi ditemukan!')
       mapSearchQuery.value = ''
     } else {
       showToast('warning', '⚠️ Lokasi tidak ditemukan')
@@ -476,7 +470,6 @@ if (!map || !marker) {
   }
 }
 
-// Reverse geocode
 const reverseGeocode = async (lat, lng) => {
   try {
     const response = await fetch(
@@ -485,7 +478,6 @@ const reverseGeocode = async (lat, lng) => {
     const result = await response.json()
 
     if (result && result.display_name) {
-      // ✅ Bersihkan address
       const cleanedAddress = cleanAddress(result.display_name, formLead.value.property)
       formLead.value.address = cleanedAddress
       
@@ -496,21 +488,6 @@ const reverseGeocode = async (lat, lng) => {
     console.error('❌ Reverse geocode error:', error)
   }
 }
-
-// watch(showEditModal, async (val) => {
-//   if (val) {
-//     await nextTick()
-//     setTimeout(() => {
-//       initLeafletMap()
-//     }, 100)
-//   } else {
-//     if (map) {
-//       map.remove()
-//       map = null
-//       marker = null
-//     }
-//   }
-// })
 
 watch(
   [showEditModal, showInputModal],
@@ -661,10 +638,7 @@ onMounted(() => {
 
     if (!place.geometry) return;
 
-    // Simpan alamat sebagai STRING (varchar)
     formLead.address = place.formatted_address;
-
-    // Simpan koordinat (opsional tapi biasanya dibutuhkan)
     formLead.latitude = place.geometry.location.lat();
     formLead.longitude = place.geometry.location.lng();
   });
