@@ -110,7 +110,7 @@ def generate_deal_detail_id():
 class Deal(models.Model):
     deal_id = models.CharField(max_length=20, primary_key=True, default=generate_deal_id, editable=False)
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
-    
+    deal_by = models.CharField(max_length=100)
     DEAL_TYPES = [
         ('New Deal', 'New Deal'), ('Migration', 'Migration'), 
         ('Update Package', 'Update Package'), ('Refreshment Training', 'Refreshment Training'), 
