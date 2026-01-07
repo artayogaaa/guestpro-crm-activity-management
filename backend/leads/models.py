@@ -121,9 +121,9 @@ class Deal(models.Model):
     room = models.IntegerField(default=0)
     project_manager = models.CharField(max_length=100, blank=True, null=True) # Kosong dulu
     notes = models.TextField(blank=True, null=True)
-    
-    # --- FIELD DEALING PROPERTY (DIISI NANTI) ---
     nik_npwp = models.FileField(upload_to='docs/', blank=True, null=True) # File/Link
+    management = models.CharField(max_length=100, blank=True, null=True)
+    # --- FIELD DEALING PROPERTY (DIISI NANTI) ---
     link_invoice = models.CharField(max_length=255, blank=True, null=True)
     invoice_issued = models.BooleanField(default=False)
     subscribe_changed = models.BooleanField(default=False)
@@ -135,6 +135,7 @@ class Deal(models.Model):
     link_payment_receipt = models.CharField(max_length=255, blank=True, null=True)
     is_invoice_send_to_customer = models.BooleanField(default=False)
     pic_lead = models.ForeignKey(LeadPIC, on_delete=models.SET_NULL, null=True, blank=True, related_name='deals')
+    account_manager = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
 

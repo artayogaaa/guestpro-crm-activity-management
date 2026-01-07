@@ -80,6 +80,7 @@ class DealSerializer(serializers.ModelSerializer):
     # --- Extra Fields untuk Display di Frontend (Read Only) ---
     # Mengambil data dari relasi ForeignKey 'lead' agar frontend bisa nampilin nama property
     lead_property = serializers.CharField(source='lead.property', read_only=True)
+    lead_address = serializers.CharField(source='lead.address', read_only=True)
     lead_pic_gp = serializers.CharField(source='lead.gp_pic', read_only=True)
     pic_lead_name = serializers.CharField(source='pic_lead.pic_name', read_only=True)
     pic_lead_contact = serializers.CharField(source='pic_lead.phone_number', read_only=True)

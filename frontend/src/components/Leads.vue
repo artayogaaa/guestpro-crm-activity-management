@@ -339,9 +339,6 @@ const onChangeDeals = (evt) => {
   }
 };
 
-const addDealDetailRow = () => formDeal.value.details.push({ package: '', product: '', product_amount: 0, product_amount_by: 'Month', initiation: '', initiation_amount: 0 });
-const removeDealDetailRow = (i) => formDeal.value.details.splice(i, 1);
-
 const saveDeal = async () => {
   try {
     const pk = draggedItem.value.lead_id;
@@ -2006,7 +2003,6 @@ onMounted(() => {
                       {{ selectedDeal.deal_by }}
                     </p>
                   </div>
-
                   <div>
                     <label class="gp-label-detail text-green-600">Date In</label>
                     <p class="text-sm font-semibold text-gray-900 flex items-center gap-2">
