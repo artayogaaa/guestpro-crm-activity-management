@@ -134,15 +134,52 @@ const formQuotationInitial = ref({
   lead: null, pic_gp: '', date: '', link_quotation: '', is_send: false
 });
 
+const productCatalog = {
+  'PMS': ['PMS Standard', 'PMS Pro'],
+  'Orderbil': ['Orderbil Standard', 'Orderbil Pro']
+};
+
+const initiationOptions = [
+  'Visit Training', 
+  'Online Training', 
+  'Office Visit Meeting'
+];
+
 const formDeal = ref({
   lead: null,
   deal_by: '',
   deal_type: 'New Deal',
   room: 0,
-  pic_lead: null, 
+  pic_lead: null,
   notes: '',
-  details: [] 
+  // UI Split: Array terpisah untuk memudahkan input di UI
+  products: [],     
+  initiations: []   
 });
+
+// --- 3. HELPER LOGIC ---
+const getAvailablePackages = (currentIndex) => {
+  const selectedPackages = formDeal.value.products
+    .map((item, idx) => idx !== currentIndex ? item.package : null)
+    .filter(p => p !== null);
+  return Object.keys(productCatalog).filter(p => !selectedPackages.includes(p));
+};
+
+const getProductsForPackage = (pkgName) => {
+  return pkgName && productCatalog[pkgName] ? productCatalog[pkgName] : [];
+};
+
+// --- 4. BUTTON ADD/REMOVE ---
+const addDealProductRow = () => {
+  formDeal.value.products.push({ package: '', product: '', amount: 0, cycle: 'Month' });
+};
+const removeDealProductRow = (i) => formDeal.value.products.splice(i, 1);
+
+const addDealInitiationRow = () => {
+  // Product di sini menyimpan Nama Service (misal: Visit Training)
+  formDeal.value.initiations.push({ product: '', amount: 0 });
+};
+const removeDealInitiationRow = (i) => formDeal.value.initiations.splice(i, 1);
 
 // =======================================================================
 // API & LOGIC: LEADS MANAGEMENT
@@ -296,7 +333,8 @@ const onChangeDeals = (evt) => {
       room: 0,
       pic_lead: null,
       notes: '',
-      details: [{ package: '', product: '', product_amount: 0, product_amount_by: 'Month', initiation: '', initiation_amount: 0 }]
+      products: [{ package: '', product: '', amount: 0, cycle: 'Month' }],
+      initiations: []
     };
   }
 };
@@ -307,12 +345,58 @@ const removeDealDetailRow = (i) => formDeal.value.details.splice(i, 1);
 const saveDeal = async () => {
   try {
     const pk = draggedItem.value.lead_id;
+    const finalDetails = [];
+
+    // A. Map Products (Main Products)
+    // Masukkan ke field 'product_initiation' sesuai request Model
+    formDeal.value.products.forEach(p => {
+        if(p.package && p.product) {
+            finalDetails.push({
+                package: p.package,
+                
+                // MAPPING UTAMA: Product masuk ke product_initiation
+                product_initiation: p.product,
+                product_initiation_amount: p.amount,
+                product_initiation_amount_by: p.cycle
+            });
+        }
+    });
+
+    // B. Map Initiations (Services)
+    // Juga dimasukkan ke field 'product_initiation'
+    formDeal.value.initiations.forEach(i => {
+        if(i.product) { 
+            finalDetails.push({
+                package: 'Initiation', // Penanda Kategori
+                
+                // MAPPING UTAMA: Service Name masuk ke product_initiation
+                product_initiation: i.product, 
+                product_initiation_amount: i.amount,
+                product_initiation_amount_by: 'One-time Cost' 
+            });
+        }
+    });
+
+    const payload = {
+        ...formDeal.value,
+        details: finalDetails
+    };
+    
+    // Bersihkan array temporary
+    delete payload.products;
+    delete payload.initiations;
+
+    // Kirim
     await api.patch(`leads/${pk}/`, { status_kanban: 'deals' });
-    await api.post('deals/', formDeal.value);
+    await api.post('deals/', payload);
+
     showToast('success', 'Deal berhasil dibuat!');
     showDealModal.value = false;
     fetchLeads();
-  } catch (error) { showToast('error', 'Gagal simpan deal'); }
+  } catch (error) { 
+    console.error("Error Details:", error.response?.data);
+    showToast('error', 'Gagal simpan deal. Cek form anda.'); 
+  }
 };
 
 const cancelMoveDeal = () => { showDealModal.value = false; fetchLeads(); showToast('warning', 'Dibatalkan'); };
@@ -1195,36 +1279,37 @@ onMounted(() => {
                 <label class="gp-label">PIC Lead (Invoice Recipient)</label>
                 <select v-model="formDeal.pic_lead" class="gp-input">
                   <option :value="null">-- Pilih PIC Lead --</option>
-                  <option v-for="pic in draggedItem?.pics" :key="pic.id" :value="pic.id">
-                    {{ pic.pic_name }} - {{ pic.phone_number }}
-                  </option>
+                  <option v-for="pic in draggedItem?.pics" :key="pic.id" :value="pic.id">{{ pic.pic_name }} - {{ pic.phone_number }}</option>
                 </select>
               </div>
-
-              <div class="md:col-span-2">
-                <label class="gp-label">Notes</label>
-                <textarea v-model="formDeal.notes" rows="3" class="gp-input"></textarea>
-              </div>
+              <div class="md:col-span-2"><label class="label">Notes</label><textarea v-model="formDeal.notes" rows="2" class="input"></textarea></div>
             </div>
 
-            <div class="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div class="bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-3 border-b flex justify-between items-center">
-                <h4 class="text-sm font-bold text-gray-700 uppercase flex items-center gap-2">
-                  <DollarSign :size="16"/> Product & Packages
-                </h4>
-                <button type="button" @click="addDealDetailRow" class="gp-btn-primary text-xs py-1.5 px-3">
-                  <Plus :size="12"/> Add Product
-                </button>
+            <div class="border rounded-lg overflow-hidden border-blue-200">
+              <div class="bg-blue-50 px-4 py-2 border-b border-blue-200 flex justify-between items-center">
+                <h4 class="text-sm font-bold text-blue-800 uppercase flex items-center gap-2"><Package :size="16"/> Product & Packages</h4>
+                <button type="button" @click="addDealProductRow" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1"><Plus :size="12"/> Add Product</button>
               </div>
-              <div class="p-5 bg-gray-50 space-y-4">
-                <div v-for="(detail, index) in formDeal.details" :key="index" class="bg-white p-4 rounded-xl border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow relative">
-                  <button type="button" @click="removeDealDetailRow(index)" class="absolute top-3 right-3 text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-all">
-                    <Trash2 :size="16"/>
-                  </button>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+              <div class="p-4 bg-white space-y-3">
+                <div v-if="formDeal.products.length === 0" class="text-center text-gray-400 italic text-sm py-2">Belum ada produk dipilih.</div>
+                
+                <div v-for="(detail, index) in formDeal.products" :key="'prod-'+index" class="bg-gray-50 p-3 rounded border shadow-sm relative">
+                  <button type="button" @click="removeDealProductRow(index)" class="absolute top-2 right-2 text-red-400 hover:text-red-600"><Trash2 :size="16"/></button>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
                     <div>
-                      <label class="gp-label">Package Name</label>
-                      <input v-model="detail.package" type="text" class="gp-input-sm" placeholder="e.g. Pro Plan">
+                        <label class="label">Package Name</label>
+                        <select v-model="detail.package" class="input-sm" @change="detail.product = ''">
+                            <option value="" disabled>-- Select --</option>
+                            <option v-for="pkg in getAvailablePackages(index)" :key="pkg" :value="pkg">{{ pkg }}</option>
+                            <option v-if="detail.package && !getAvailablePackages(index).includes(detail.package)" :value="detail.package">{{ detail.package }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Product(s)</label>
+                        <select v-model="detail.product" class="input-sm" :disabled="!detail.package">
+                            <option value="" disabled>-- Select --</option>
+                            <option v-for="prod in getProductsForPackage(detail.package)" :key="prod" :value="prod">{{ prod }}</option>
+                        </select>
                     </div>
                     <div>
                       <label class="gp-label">Product(s)</label>
@@ -1233,28 +1318,49 @@ onMounted(() => {
                     <div>
                       <label class="gp-label">Product Amount</label>
                       <div class="flex gap-2">
-                        <input v-model="detail.product_amount" type="number" class="gp-input-sm flex-1">
-                        <select v-model="detail.product_amount_by" class="gp-input-sm w-28">
-                          <option>Month</option>
-                          <option>Year</option>
-                          <option>One-time</option>
-                        </select>
+                        <input v-model="detail.amount" type="number" class="input-sm">
+                        <select v-model="detail.cycle" class="input-sm w-24"><option>Month</option><option>Year</option><option>One-time</option></select>
                       </div>
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="gp-label">Initiation (Setup/Training)</label>
-                      <input v-model="detail.initiation" type="text" class="gp-input-sm" placeholder="e.g. Onsite Training">
-                    </div>
-                    <div>
-                      <label class="gp-label">Initiation Amount</label>
-                      <input v-model="detail.initiation_amount" type="number" class="gp-input-sm">
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div class="border rounded-lg overflow-hidden border-green-200">
+              <div class="bg-green-50 px-4 py-2 border-b border-green-200 flex justify-between items-center">
+                <h4 class="text-sm font-bold text-green-800 uppercase flex items-center gap-2"><Settings :size="16"/> Initiation</h4>
+                <button type="button" @click="addDealInitiationRow" class="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 flex items-center gap-1"><Plus :size="12"/> Add Initiation</button>
+              </div>
+              <div class="p-4 bg-white space-y-3">
+                <div v-if="formDeal.initiations.length === 0" class="text-center text-gray-400 italic text-sm py-2">Belum ada initiation dipilih.</div>
+
+                <div v-for="(detail, index) in formDeal.initiations" :key="'init-'+index" class="bg-gray-50 p-3 rounded border shadow-sm relative">
+                  <button type="button" @click="removeDealInitiationRow(index)" class="absolute top-2 right-2 text-red-400 hover:text-red-600"><Trash2 :size="16"/></button>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                    <div>
+                        <label class="label">Package</label>
+                        <input type="text" class="input-sm bg-gray-100 text-gray-500" value="Initiation" readonly>
+                    </div>
+                    <div>
+                        <label class="label">Initiation (Service)</label>
+                        <select v-model="detail.product" class="input-sm">
+                            <option value="" disabled>-- Select Service --</option>
+                            <option v-for="opt in initiationOptions" :key="opt" :value="opt">{{ opt }}</option>
+                        </select>
+                    </div>
+                    <div>
+                      <label class="label">Initiation Amount</label>
+                      <div class="flex gap-2">
+                        <input v-model="detail.amount" type="number" class="input-sm">
+                        <select class="input-sm w-28 bg-gray-100" disabled><option>One-time Cost</option></select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div class="p-6 border-t bg-gray-50 flex justify-end gap-3 sticky bottom-0 z-10">
