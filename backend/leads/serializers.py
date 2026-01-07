@@ -117,3 +117,5 @@ class DealSerializer(serializers.ModelSerializer):
                 DealDetail.objects.create(deal=instance, **detail_data)
         
         return instance
+    
+    

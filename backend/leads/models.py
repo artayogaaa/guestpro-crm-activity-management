@@ -107,6 +107,12 @@ def generate_deal_id():
 def generate_deal_detail_id():
     return 'DD-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
+def generate_setup_data_id():
+    return 'SD-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+def generate_training_id():
+    return 'SD-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
 class Deal(models.Model):
     deal_id = models.CharField(max_length=20, primary_key=True, default=generate_deal_id, editable=False)
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
@@ -160,3 +166,69 @@ class DealDetail(models.Model):
         db_table = 'deal_detail'
     def __str__(self):
         return f"Quote for {self.lead}"
+    
+class SetupData(models.Model):
+    setup_id = models.CharField(
+        max_length=20,
+        primary_key=True,
+        default=generate_setup_data_id,
+        editable=False
+    )
+
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE)
+
+    pic_gp = models.CharField(max_length=100)
+
+    start = models.DateTimeField()  # input manual tanggal & jam
+    end = models.DateTimeField(blank=True, null=True)  # diisi saat detail
+
+    setup_type = models.CharField(max_length=100)
+    product = models.CharField(max_length=255)
+    task = models.CharField(max_length=255)
+
+    notes = models.CharField(max_length=500, blank=True)
+    status = models.CharField(max_length=50)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'setup_data'
+
+    def __str__(self):
+        return self.setup_id
+
+    
+class Training(models.Model):
+    training_id = models.CharField(
+        max_length=20,
+        primary_key=True,
+        default=generate_training_id,
+        editable=False
+    )
+
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE)
+
+    pic_gp = models.CharField(max_length=100)
+
+    date = models.DateField()
+    start = models.TimeField()  # input manual
+    end = models.TimeField(blank=True, null=True)  # diisi saat detail
+
+    training_type = models.CharField(max_length=100)
+    periode = models.CharField(max_length=100)
+    module_in_charge = models.CharField(max_length=255)
+
+    product = models.CharField(max_length=255)
+    notes = models.CharField(max_length=500, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'training'
+
+    def __str__(self):
+        return self.training_id

@@ -64,6 +64,13 @@ const draggedItem = ref(null);
 const activeDragTab = ref('followup'); 
 const modalMode = ref('drag'); 
 
+const showOnboardingModal = ref(false);
+const selectedOnboardingLead = ref(null);
+const onboardingActivityList = ref([]);
+const onboardingTab = ref('followup');
+const showOnboardingInputModal = ref(false);
+const isEditingOnboardingActivity = ref(false);
+
 const showEditModal = ref(false);
 const isEditing = ref(false); 
 const addressInput = ref(null);
@@ -107,6 +114,188 @@ const referralLabel = computed(() => {
 // =======================================================================
 // FORMS
 // =======================================================================
+
+const fetchOnboardingActivities = async (leadId, type) => {
+  try {
+    let endpoint = '';
+    switch(type) {
+      case 'followup': endpoint = 'followups/'; break;
+      case 'meeting': endpoint = 'meetings/'; break;
+      case 'setupdata': endpoint = 'setupdata/'; break;
+      case 'training': endpoint = 'trainings/'; break;
+    }
+    const response = await api.get(endpoint);
+    onboardingActivityList.value = response.data.filter(item => item.lead === leadId);
+  } catch (error) {
+    showToast('error', 'Gagal memuat riwayat onboarding');
+  }
+};
+
+const openOnboardingModal = async (lead) => {
+  selectedOnboardingLead.value = lead;
+  showOnboardingModal.value = true;
+  onboardingTab.value = 'followup';
+  await fetchOnboardingActivities(lead.lead_id, 'followup');
+};
+
+const switchOnboardingTab = async (tab) => {
+  onboardingTab.value = tab;
+  if(selectedOnboardingLead.value) {
+    await fetchOnboardingActivities(selectedOnboardingLead.value.lead_id, tab);
+  }
+};
+
+const openOnboardingInputModal = (item = null) => {
+  if (item) {
+    isEditingOnboardingActivity.value = true;
+    formOnboarding.value = JSON.parse(JSON.stringify(item));
+  } else {
+    isEditingOnboardingActivity.value = false;
+    formOnboarding.value = {
+      id: null,
+      lead: selectedOnboardingLead.value.lead_id,
+      deal: selectedOnboardingLead.value.deal_id || null,
+      pic_gp: selectedOnboardingLead.value.gp_pic,
+      pic_lead: '',
+      date: new Date().toISOString().split('T')[0],
+      start_time: '',
+      end_time: '',
+      objective: 'Onboarding',
+      stage: 'Onboarding',
+      fu_type: 'Phone Calls/Telephone',
+      notes: '',
+      meeting_type: 'Visit Meeting',
+      location: '',
+      mom: '',
+      start: '',
+      end: '',
+      setup_type: '',
+      product: '',
+      task: '',
+      setup_notes: '',
+      status: 'In Progress',
+      training_type: 'Visit Training',
+      periode: '',
+      module_in_charge: '',
+      training_product: '',
+      training_notes: ''
+    };
+  }
+  showOnboardingInputModal.value = true;
+};
+
+const saveOnboardingActivity = async () => {
+  try {
+    let endpoint = '';
+    let payload = {};
+    
+    switch(onboardingTab.value) {
+      case 'followup': 
+        endpoint = 'followups/';
+        payload = {
+          lead: selectedOnboardingLead.value.lead_id,
+          pic_gp: formOnboarding.value.pic_gp,
+          pic_lead: formOnboarding.value.pic_lead,
+          date: formOnboarding.value.date,
+          start_time: formOnboarding.value.start_time,
+          end_time: formOnboarding.value.end_time,
+          objective: formOnboarding.value.objective,
+          stage: 'Onboarding',
+          fu_type: formOnboarding.value.fu_type,
+          notes: formOnboarding.value.notes
+        };
+        break;
+        
+      case 'meeting': 
+        endpoint = 'meetings/';
+        payload = {
+          lead: selectedOnboardingLead.value.lead_id,
+          pic_gp: formOnboarding.value.pic_gp,
+          pic_lead: formOnboarding.value.pic_lead,
+          date: formOnboarding.value.date,
+          start_time: formOnboarding.value.start_time,
+          end_time: formOnboarding.value.end_time,
+          objective: formOnboarding.value.objective,
+          stage: 'Onboarding',
+          meeting_type: formOnboarding.value.meeting_type,
+          location: formOnboarding.value.location,
+          mom: formOnboarding.value.mom
+        };
+        break;
+        
+      case 'setupdata': 
+        endpoint = 'setupdata/';
+        const startDateTime = formOnboarding.value.date && formOnboarding.value.start_time 
+          ? `${formOnboarding.value.date}T${formOnboarding.value.start_time}`
+          : null;
+        const endDateTime = formOnboarding.value.date && formOnboarding.value.end_time 
+          ? `${formOnboarding.value.date}T${formOnboarding.value.end_time}`
+          : null;
+          
+        payload = {
+          lead: selectedOnboardingLead.value.lead_id,
+          deal: formOnboarding.value.deal,
+          pic_gp: formOnboarding.value.pic_gp,
+          start: startDateTime,
+          end: endDateTime,
+          setup_type: formOnboarding.value.setup_type,
+          product: formOnboarding.value.product,
+          task: formOnboarding.value.task,
+          notes: formOnboarding.value.setup_notes,
+          status: formOnboarding.value.status
+        };
+        break;
+        
+      case 'training': 
+        endpoint = 'trainings/';
+        payload = {
+          lead: selectedOnboardingLead.value.lead_id,
+          deal: formOnboarding.value.deal,
+          pic_gp: formOnboarding.value.pic_gp,
+          date: formOnboarding.value.date,
+          start: formOnboarding.value.start_time,
+          end: formOnboarding.value.end_time,
+          training_type: formOnboarding.value.training_type,
+          periode: formOnboarding.value.periode,
+          module_in_charge: formOnboarding.value.module_in_charge,
+          product: formOnboarding.value.training_product,
+          notes: formOnboarding.value.training_notes
+        };
+        break;
+    }
+    
+    if (isEditingOnboardingActivity.value) {
+      await api.put(`${endpoint}${formOnboarding.value.id}/`, payload);
+    } else {
+      await api.post(endpoint, payload);
+    }
+    
+    showToast('success', 'Data tersimpan');
+    showOnboardingInputModal.value = false;
+    fetchOnboardingActivities(selectedOnboardingLead.value.lead_id, onboardingTab.value);
+  } catch (error) {
+    console.error('Error saving:', error.response?.data);
+    showToast('error', 'Gagal simpan');
+  }
+};
+
+const deleteOnboardingActivity = async (id) => {
+  if (!confirm("Hapus aktivitas ini?")) return;
+  try {
+    let endpoint = '';
+    switch(onboardingTab.value) {
+      case 'followup': endpoint = 'followups/'; break;
+      case 'meeting': endpoint = 'meetings/'; break;
+      case 'setupdata': endpoint = 'setupdata/'; break;
+      case 'training': endpoint = 'trainings/'; break;
+    }
+    await api.delete(`${endpoint}${id}/`);
+    showToast('success', 'Berhasil dihapus');
+    fetchOnboardingActivities(selectedOnboardingLead.value.lead_id, onboardingTab.value);
+  } catch (error) {
+    showToast('error', 'Gagal hapus');
+  }
+};
 
 const formLead = ref({
   lead_id: null, 
@@ -259,7 +448,7 @@ const openModal = (item = null) => {
     isEditing.value = false; 
     formLead.value = { 
       property: '', source: '', type: '', 
-      coordinates: '', address: '', gp_pic: '', 
+      coordinates: '', address: '', gp_pic: '', deal_by:'',
       date_in: new Date().toISOString().split('T')[0],
       referral_or_affiliate_by: '', commission_amount: '',
       pics: [{ pic_name: '', phone_number: '', whatsapp: '', email: '' }] 
@@ -269,6 +458,18 @@ const openModal = (item = null) => {
 };
 
 const closeModal = () => showEditModal.value = false;
+
+const handleTabChange = async (tab) => {
+  activeDragTab.value = tab;
+  
+  if (tab === 'meeting' && formActivity.value.meeting_type === 'Visit Meeting') {
+    console.log('🗺️ Tab meeting clicked, init map...');
+    await nextTick();
+    setTimeout(() => {
+      initMeetingMap();
+    }, 300);
+  }
+};
 
 const handleGenericSubmit = async () => {
   if (!isReferralOrAffiliate.value) {
@@ -601,25 +802,34 @@ const reverseGeocode = async (lat, lng) => {
 }
 
 watch(
-  [showEditModal, showInputModal, activeDragTab, () => formActivity.value.meeting_type],
-  async ([leadOpen, meetingOpen, activeTab, meetingType]) => {
+  [showEditModal, showInputModal, showFollowUpModal, activeDragTab, () => formActivity.value.meeting_type],
+  async ([leadOpen, inputOpen, followUpOpen, activeTab, meetingType]) => {
     // Init map untuk Edit Lead Modal
     if (leadOpen) {
+      console.log('👀 Edit modal opened')
       await nextTick()
       setTimeout(() => {
         initLeafletMap()
-      }, 200)
+      }, 400)
     }
     
-    // Init map untuk Meeting Modal (Input Modal atau Follow Up Modal)
-    if (
-      (meetingOpen && activityTab.value === 'meeting' && meetingType === 'Visit Meeting') ||
-      (showFollowUpModal.value && activeTab === 'meeting' && meetingType === 'Visit Meeting')
-    ) {
+    // Init map untuk Meeting Modal di Follow Up Modal
+    if (followUpOpen && activeTab === 'meeting' && meetingType === 'Visit Meeting') {
+      console.log('🗺️ Follow Up Modal - Meeting with Visit Meeting')
+      await nextTick()
+      // Delay lebih lama karena DOM belum ready
+      setTimeout(() => {
+        initMeetingMap()
+      }, 800)
+    }
+    
+    // Init map untuk Input Modal
+    if (inputOpen && activityTab.value === 'meeting' && meetingType === 'Visit Meeting') {
+      console.log('🗺️ Input Modal - Meeting with Visit Meeting')
       await nextTick()
       setTimeout(() => {
         initMeetingMap()
-      }, 300)
+      }, 800)
     }
   }
 )
@@ -633,12 +843,20 @@ const meetingSearchQuery = ref('')
 let meetingMap = null
 let meetingMarker = null
 
-const initMeetingMap = async () => {
+const initMeetingMap = async (retryCount = 0) => {
   await nextTick()
 
   if (!meetingMapContainer.value) {
-    console.warn('(!) MeetingMapContainer belum ada (!)')
-    return
+    if (retryCount < 3) {
+      console.warn(`⏳ MeetingMapContainer belum ada, retry ${retryCount + 1}/3...`)
+      setTimeout(() => {
+        initMeetingMap(retryCount + 1)
+      }, 300)
+      return
+    } else {
+      console.error('❌ MeetingMapContainer tidak ditemukan setelah 3x retry')
+      return
+    }
   }
 
   if (meetingMap) {
@@ -646,14 +864,24 @@ const initMeetingMap = async () => {
     meetingMap = null
   }
 
-  const [lat, lng] = formActivity.coordinates
-    ? formActivity.coordinates.split(',').map(Number)
-    : [-7.797068, 110.370529]
+  let lat = -7.797068
+  let lng = 110.370529
+  
+  if (formActivity.value.coordinates) {
+    const coords = formActivity.value.coordinates.split(',')
+    if (coords.length === 2) {
+      lat = parseFloat(coords[0].trim())
+      lng = parseFloat(coords[1].trim())
+    }
+  }
+
+  console.log('🗺️ Inisialisasi Meeting Map...', lat, lng)
 
   meetingMap = L.map(meetingMapContainer.value).setView([lat, lng], 14)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
   }).addTo(meetingMap)
 
   meetingMarker = L.marker([lat, lng], { draggable: true }).addTo(meetingMap)
@@ -668,7 +896,10 @@ const initMeetingMap = async () => {
     updateMeetingLocation(e.latlng.lat, e.latlng.lng)
   })
 
-  setTimeout(() => meetingMap.invalidateSize(), 300)
+  setTimeout(() => {
+    meetingMap.invalidateSize()
+    console.log('✅ Meeting Map ready!')
+  }, 300)
 }
 
 const updateMeetingLocation = async (lat, lng) => {
@@ -792,7 +1023,7 @@ onMounted(() => {
           </div>
           <draggable 
             v-model="leadsGenInbound" 
-            :group="{ name: 'leads', put: false }"  
+            :group="{ name: 'gen', pull: 'followup', put: false }"
             item-key="lead_id" 
             class="flex-1 flex flex-col gap-2.5 min-h-[50px]"
           >
@@ -825,7 +1056,7 @@ onMounted(() => {
           </div>
           <draggable 
             v-model="leadsGenOutbound" 
-            :group="{ name: 'leads', put: false }"  
+            :group="{ name: 'gen', pull: 'followup', put: false }"
             item-key="lead_id" 
             class="flex-1 flex flex-col gap-2.5 min-h-[50px]"
           >
@@ -857,7 +1088,13 @@ onMounted(() => {
           Follow Up 
           <span class="gp-badge bg-yellow-500">{{ leadsFollowUp.length }}</span>
         </h3>
-        <draggable v-model="leadsFollowUp" group="leads" item-key="lead_id" class="flex-1 flex flex-col gap-2.5 min-h-[100px]" @change="onChangeFollowUp">
+        <draggable
+          v-model="leadsFollowUp"
+          :group="{ name: 'followup', pull: 'quotation', put: ['gen'] }"
+          item-key="lead_id"
+          class="flex-1 flex flex-col gap-2.5 min-h-[100px]"
+          @change="onChangeFollowUp"
+        >
           <template #item="{element}">
             <div @dblclick="openActivityModal(element, 'followup')" class="gp-card border-l-4 border-yellow-400 hover:border-yellow-500">
               <div class="font-bold text-gray-900 text-sm mb-1.5 line-clamp-2">{{ element.property }}</div>
@@ -886,11 +1123,11 @@ onMounted(() => {
           <span class="gp-badge bg-purple-500">{{ leadsQuotation.length }}</span>
         </h3>
         <draggable
-            v-model="leadsQuotation"
-            :group="{ name: 'leads', pull: true, put: false }"
-            item-key="lead_id"
-            class="flex-1 flex flex-col gap-2.5 min-h-[100px]"
-            @change="onChangeQuotation"
+          v-model="leadsQuotation"
+          :group="{ name: 'quotation', pull: 'deals', put: ['followup'] }"
+          item-key="lead_id"
+          class="flex-1 flex flex-col gap-2.5 min-h-[100px]"
+          @change="onChangeQuotation"
         >
           <template #item="{element}">
             <div @dblclick="openActivityModal(element, 'quotation')" class="gp-card border-l-4 border-purple-400 hover:border-purple-500">
@@ -921,7 +1158,7 @@ onMounted(() => {
         </h3>
         <draggable
           v-model="leadsDeals"
-          :group="{ name: 'leads', pull: false, put: true }"
+          :group="{ name: 'deals', pull: 'onboarding', put: ['quotation'] }"
           item-key="lead_id"
           class="flex-1 flex flex-col gap-2.5 min-h-[100px]"
           @change="onChangeDeals"
@@ -946,11 +1183,53 @@ onMounted(() => {
 
       <!-- Onboarding Column -->
       <div class="min-w-[300px] bg-white rounded-2xl p-4 flex flex-col h-full shadow-sm border border-gray-100">
-        <h3 class="font-bold text-gray-900 px-2 mb-3 text-lg">Onboarding</h3>
-        <draggable v-model="leadsOnboarding" group="leads" item-key="lead_id" class="flex-1 flex flex-col gap-2.5" @change="(e) => updateStatus(e, 'onboarding')">
+        <h3 class="font-bold text-gray-900 px-2 mb-3 flex justify-between items-center text-lg">
+          Onboarding
+          <span class="gp-badge bg-blue-500">{{ leadsOnboarding.length }}</span>
+        </h3>
+        <draggable
+          v-model="leadsOnboarding"
+          :group="{ name: 'onboarding', pull: 'retention', put: ['deals'] }"
+          item-key="lead_id"
+          class="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1"
+          @change="(e) => updateStatus(e, 'onboarding')"
+        >
           <template #item="{element}">
-            <div class="gp-card border-l-4 border-blue-400">
-              <div class="font-bold text-gray-900 text-sm">{{ element.property }}</div>
+            <div @dblclick="openOnboardingModal(element)" class="gp-card border-l-4 border-blue-400 hover:border-blue-500 cursor-pointer">
+              <div class="font-bold text-gray-900 text-sm mb-2 line-clamp-2">{{ element.property }}</div>
+              
+              <div class="space-y-2">
+                <!-- Source Badge -->
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-md" :class="inboundSources.includes(element.source) ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'">
+                    {{ element.source }}
+                  </span>
+                </div>
+                
+                <!-- PIC Info -->
+                <div class="text-xs text-gray-600 flex items-center gap-1.5">
+                  <User :size="11" class="text-gray-400" /> 
+                  <span class="font-medium">{{ element.gp_pic }}</span>
+                </div>
+                
+                <!-- Date Info -->
+                <div class="text-xs text-gray-500 flex items-center gap-1.5">
+                  <Calendar :size="11" class="text-gray-400" /> 
+                  <span>{{ element.date_in }}</span>
+                </div>
+                
+                <!-- Status Indicator -->
+                <div class="pt-2 mt-2 border-t border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wide">In Progress</span>
+                    <div class="flex gap-1">
+                      <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                      <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                      <div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
         </draggable>
@@ -959,7 +1238,13 @@ onMounted(() => {
       <!-- Retention Column -->
       <div class="min-w-[300px] bg-white rounded-2xl p-4 flex flex-col h-full shadow-sm border border-gray-100">
         <h3 class="font-bold text-gray-900 px-2 mb-3 text-lg">Retention</h3>
-        <draggable v-model="leadsRetention" group="leads" item-key="lead_id" class="flex-1 flex flex-col gap-2.5" @change="(e) => updateStatus(e, 'retention')">
+        <draggable
+          v-model="leadsRetention"
+          :group="{ name: 'retention', pull: false, put: ['onboarding'] }"
+          item-key="lead_id"
+          class="flex-1 flex flex-col gap-2.5"
+          @change="(e) => updateStatus(e, 'retention')"
+        >
           <template #item="{element}">
             <div class="gp-card border-l-4 border-pink-400">
               <div class="font-bold text-gray-900 text-sm">{{ element.property }}</div>
@@ -1072,7 +1357,6 @@ onMounted(() => {
 
                   <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-200">
                     <div class="flex items-start gap-3">
-                      <div class="text-3xl">📍</div>
                       <div class="flex-1 space-y-2">
                         <div class="flex items-center gap-2">
                           <span class="text-xs font-bold text-gray-600 uppercase">Koordinat:</span>
@@ -1497,20 +1781,58 @@ onMounted(() => {
                     <option>Office Visit Meeting</option>
                   </select>
                 </div>
-                <div v-if="formActivity.meeting_type === 'Visit Meeting'" class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 space-y-3">
-                  <div>
-                    <label class="gp-label">Location</label>
-                    <input v-model="formActivity.location" type="text" class="gp-input" placeholder="Nama Lokasi / Alamat">
+                <div class="md:col-span-2">
+                  <label class="gp-label">Alamat Lengkap</label>
+                  
+                  <div class="flex gap-2 mb-3">
+                    <input
+                      v-model="mapSearchQuery"
+                      type="text"
+                      class="gp-input flex-1"
+                      placeholder="Cari lokasi (contoh: Bandara Ngurah Rai)"
+                      @keyup.enter="searchLocation"
+                    />
+                    <button 
+                      type="button" 
+                      @click="searchLocation" 
+                      class="gp-btn-primary px-5"
+                    >
+                      Cari
+                    </button>
                   </div>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="gp-label">Latitude</label>
-                      <input v-model="formActivity.latitude" type="text" class="gp-input">
+
+                  <div
+                    ref="mapContainer"
+                    class="w-full h-64 rounded-xl border-2 border-gray-200 mb-3 overflow-hidden shadow-inner"
+                  ></div>
+
+                  <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-200">
+                    <div class="flex items-start gap-3">
+                      <div class="flex-1 space-y-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs font-bold text-gray-600 uppercase">Koordinat:</span>
+                          <span class="font-mono text-sm text-gray-900 bg-white px-3 py-1 rounded-lg border shadow-sm">
+                            {{ formLead.coordinates || 'Belum dipilih' }}
+                          </span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                          <span class="text-xs font-bold text-gray-600 uppercase shrink-0">Alamat:</span>
+                          <span class="text-sm text-gray-700 font-medium">
+                            {{ formLead.address || 'Klik/drag marker atau search untuk memilih lokasi' }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label class="gp-label">Longitude</label>
-                      <input v-model="formActivity.longitude" type="text" class="gp-input">
-                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <label class="gp-label">Edit Alamat Manual (Opsional)</label>
+                    <textarea 
+                      v-model="formLead.address" 
+                      rows="2" 
+                      class="gp-input text-sm" 
+                      placeholder="Atau ketik/edit alamat manual di sini..."
+                    ></textarea>
                   </div>
                 </div>
                 <div>
@@ -1659,7 +1981,7 @@ onMounted(() => {
               <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px] mb-2">Koordinat</span>
                 <span class="font-mono bg-gray-100 px-3 py-1 rounded-lg text-xs font-semibold">
-                  {{ selectedActivityLead.latitude || '-' }}, {{ selectedActivityLead.longitude || '-' }}
+                  {{ selectedActivityLead.coordinates || '-' }}
                 </span>
               </div>
               <div>
@@ -1728,7 +2050,7 @@ onMounted(() => {
                   <tr>
                     <th class="p-4 border-b-2 w-40">Tanggal & Waktu</th>
                     <th class="p-4 border-b-2 w-32">PIC GP</th>
-                    <th v-if="activityTab !== 'quotation'" class="p-4 border-b-2 w-32">Tipe</th>
+                    <th v-if="activityTab !== 'quotation'" class="p-4 border-b-2 w-34">Tipe</th>
                     <th v-if="activityTab === 'meeting'" class="p-4 border-b-2 w-40">Lokasi</th>
                     <th v-if="activityTab !== 'quotation'" class="p-4 border-b-2 w-48">Objective</th>
                     <th v-if="activityTab !== 'quotation'" class="p-4 border-b-2">{{ activityTab === 'followup' ? 'Notes' : 'MOM' }}</th>
@@ -2092,6 +2414,375 @@ onMounted(() => {
             <button @click="closeDealDetailModal" class="gp-btn-secondary">
               Tutup
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Onboarding Modal -->
+    <Teleport to="body">
+      <div v-if="showOnboardingModal && selectedOnboardingLead" class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col overflow-hidden relative animate-fade-in-up">
+          
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 border-b shrink-0">
+            <div class="flex justify-between items-start mb-5">
+              <div>
+                <h2 class="text-3xl font-bold text-gray-900">{{ selectedOnboardingLead.property }}</h2>
+                <div class="flex items-center gap-2 mt-3">
+                  <span class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-full font-bold shadow-sm">Onboarding</span>
+                  <span class="text-xs bg-gray-200 text-gray-800 px-3 py-1.5 rounded-full font-bold shadow-sm">{{ selectedOnboardingLead.source }}</span>
+                </div>
+              </div>
+              <button @click="showOnboardingModal = false" class="text-gray-400 hover:text-red-500 bg-white p-2 rounded-xl shadow-md transition-all hover:shadow-lg">
+                <X :size="24"/>
+              </button>
+            </div>
+
+            <!-- Info Grid -->
+            <div class="grid grid-cols-4 gap-6 text-sm text-gray-600 bg-white p-5 rounded-xl border-2 border-gray-200 shadow-sm">
+              <div>
+                <span class="block font-bold text-gray-400 uppercase text-[10px] mb-2">Alamat</span>
+                <span class="flex items-start gap-2 font-semibold text-gray-900">
+                  <MapPin :size="14" class="mt-0.5 text-gray-500"/> 
+                  {{ selectedOnboardingLead.address || '-' }}
+                </span>
+              </div>
+              <div>
+                <span class="block font-bold text-gray-400 uppercase text-[10px] mb-2">Koordinat</span>
+                <span class="font-mono bg-gray-100 px-3 py-1 rounded-lg text-xs font-semibold">
+                  {{ selectedOnboardingLead.coordinates || '-' }}
+                </span>
+              </div>
+              <div>
+                <span class="block font-bold text-gray-400 uppercase text-[10px] mb-2">PIC GuestPro</span>
+                <span class="flex items-center gap-2 font-semibold text-gray-900">
+                  <User :size="14" class="text-gray-500"/> 
+                  {{ selectedOnboardingLead.gp_pic }}
+                </span>
+              </div>
+              <div>
+                <span class="block font-bold text-gray-400 uppercase text-[10px] mb-2">Tgl Masuk</span>
+                <span class="flex items-center gap-2 font-semibold text-gray-900">
+                  <Calendar :size="14" class="text-gray-500"/> 
+                  {{ selectedOnboardingLead.date_in }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs & Content -->
+          <div class="flex-1 flex flex-col bg-white overflow-hidden">
+            <div class="flex justify-between items-center px-6 py-4 border-b-2 bg-white">
+              <div class="flex bg-gray-100 p-1.5 rounded-xl shadow-inner">
+                <button @click="switchOnboardingTab('followup')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='followup' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                  Follow Up
+                </button>
+                <button @click="switchOnboardingTab('meeting')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='meeting' ? 'bg-white shadow-md text-orange-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                  Meeting
+                </button>
+                <button @click="switchOnboardingTab('setupdata')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='setupdata' ? 'bg-white shadow-md text-purple-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                  Setup Data
+                </button>
+                <button @click="switchOnboardingTab('training')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='training' ? 'bg-white shadow-md text-green-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                  Training
+                </button>
+              </div>
+              <button @click="openOnboardingInputModal(null)" class="gp-btn-primary">
+                <Plus :size="16" /> 
+                Tambah {{ onboardingTab === 'followup' ? 'Follow Up' : (onboardingTab === 'meeting' ? 'Meeting' : (onboardingTab === 'setupdata' ? 'Setup Data' : 'Training')) }}
+              </button>
+            </div>
+
+            <!-- Table Content -->
+            <div class="flex-1 overflow-auto p-0">
+              <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-gradient-to-r from-gray-100 to-gray-50 text-gray-600 font-bold uppercase text-xs sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th class="p-4 border-b-2 w-40">Tanggal & Waktu</th>
+                    <th class="p-4 border-b-2 w-32">PIC GP</th>
+                    
+                    <!-- Follow Up Columns -->
+                    <th v-if="onboardingTab === 'followup'" class="p-4 border-b-2 w-34">Tipe</th>
+                    <th v-if="onboardingTab === 'followup'" class="p-4 border-b-2 w-48">Objective</th>
+                    <th v-if="onboardingTab === 'followup'" class="p-4 border-b-2">Notes</th>
+                    
+                    <!-- Meeting Columns -->
+                    <th v-if="onboardingTab === 'meeting'" class="p-4 border-b-2 w-34">Meeting Type</th>
+                    <th v-if="onboardingTab === 'meeting'" class="p-4 border-b-2 w-40">Lokasi</th>
+                    <th v-if="onboardingTab === 'meeting'" class="p-4 border-b-2 w-48">Objective</th>
+                    <th v-if="onboardingTab === 'meeting'" class="p-4 border-b-2">MOM</th>
+                    
+                    <!-- Setup Data Columns -->
+                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-32">Setup Type</th>
+                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-32">Product</th>
+                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-40">Task</th>
+                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-32">Status</th>
+                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2">Notes</th>
+                    
+                    <!-- Training Columns -->
+                    <th v-if="onboardingTab === 'training'" class="p-4 border-b-2 w-32">Training Type</th>
+                    <th v-if="onboardingTab === 'training'" class="p-4 border-b-2 w-32">Periode</th>
+                    <th v-if="onboardingTab === 'training'" class="p-4 border-b-2 w-40">Module</th>
+                    <th v-if="onboardingTab === 'training'" class="p-4 border-b-2 w-32">Product</th>
+                    <th v-if="onboardingTab === 'training'" class="p-4 border-b-2">Notes</th>
+                    
+                    <th class="p-4 border-b-2 text-center w-24">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="item in onboardingActivityList" :key="item.id" class="hover:bg-gray-50 transition-colors">
+                    <td class="p-4 align-top">
+                      <div class="font-bold text-gray-900">{{ item.date || (item.start ? item.start.split('T')[0] : '-') }}</div>
+                      <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                        <Clock :size="12"/> 
+                        {{ onboardingTab === 'setupdata' 
+                          ? (item.start ? new Date(item.start).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : '-')
+                          : (item.start_time?.substring(0,5) || item.start?.substring(11,16) || '-') 
+                        }} - 
+                        {{ onboardingTab === 'setupdata' 
+                          ? (item.end ? new Date(item.end).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : '-')
+                          : (item.end_time?.substring(0,5) || item.end?.substring(11,16) || '-') 
+                        }}
+                      </div>
+                    </td>
+                    <td class="p-4 align-top text-gray-800 font-semibold">{{ item.pic_gp }}</td>
+                    
+                    <!-- Follow Up Data -->
+                    <template v-if="onboardingTab === 'followup'">
+                      <td class="p-4 align-top">
+                        <span class="px-3 py-1.5 rounded-lg border-2 text-xs font-bold shadow-sm bg-blue-50 text-blue-700 border-blue-200">
+                          {{ item.fu_type }}
+                        </span>
+                      </td>
+                      <td class="p-4 align-top font-semibold text-gray-800">{{ item.objective }}</td>
+                      <td class="p-4 align-top text-gray-600 whitespace-pre-line">{{ item.notes }}</td>
+                    </template>
+                    
+                    <!-- Meeting Data -->
+                    <template v-if="onboardingTab === 'meeting'">
+                      <td class="p-4 align-top">
+                        <span class="px-3 py-1.5 rounded-lg border-2 text-xs font-bold shadow-sm bg-orange-50 text-orange-700 border-orange-200">
+                          {{ item.meeting_type }}
+                        </span>
+                      </td>
+                      <td class="p-4 align-top text-gray-700 font-medium">{{ item.location || '-' }}</td>
+                      <td class="p-4 align-top font-semibold text-gray-800">{{ item.objective }}</td>
+                      <td class="p-4 align-top text-gray-600 whitespace-pre-line">{{ item.mom }}</td>
+                    </template>
+                    
+                    <!-- Setup Data Data -->
+                    <template v-if="onboardingTab === 'setupdata'">
+                      <td class="p-4 align-top font-semibold text-gray-800">{{ item.setup_type }}</td>
+                      <td class="p-4 align-top text-gray-700">{{ item.product }}</td>
+                      <td class="p-4 align-top text-gray-700">{{ item.task }}</td>
+                      <td class="p-4 align-top">
+                        <span class="px-3 py-1.5 rounded-lg border-2 text-xs font-bold shadow-sm" :class="item.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' : (item.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200')">
+                          {{ item.status }}
+                        </span>
+                      </td>
+                      <td class="p-4 align-top text-gray-600 whitespace-pre-line">{{ item.notes }}</td>
+                    </template>
+                    
+                    <!-- Training Data -->
+                    <template v-if="onboardingTab === 'training'">
+                      <td class="p-4 align-top">
+                        <span class="px-3 py-1.5 rounded-lg border-2 text-xs font-bold shadow-sm bg-green-50 text-green-700 border-green-200">
+                          {{ item.training_type }}
+                        </span>
+                      </td>
+                      <td class="p-4 align-top font-semibold text-gray-800">{{ item.periode }}</td>
+                      <td class="p-4 align-top text-gray-700">{{ item.module_in_charge }}</td>
+                      <td class="p-4 align-top font-semibold text-gray-800">{{ item.product }}</td>
+                      <td class="p-4 align-top text-gray-600 whitespace-pre-line">{{ item.notes }}</td>
+                    </template>
+                    
+                    <td class="p-4 align-top text-center">
+                      <div class="flex justify-center gap-2">
+                        <button @click="openOnboardingInputModal(item)" class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-all" title="Edit">
+                          <Edit :size="16"/>
+                        </button>
+                        <button @click="deleteOnboardingActivity(item.id)" class="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all" title="Hapus">
+                          <Trash2 :size="16"/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="onboardingActivityList.length === 0">
+                    <td :colspan="onboardingTab === 'meeting' ? 7 : (onboardingTab === 'setupdata' ? 8 : (onboardingTab === 'training' ? 8 : 6))" class="p-12 text-center text-gray-400 italic bg-gray-50/50">
+                      Belum ada riwayat aktivitas. Klik tombol "Tambah" di atas.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Onboarding Input Modal -->
+    <Teleport to="body">
+      <div v-if="showOnboardingInputModal" class="fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative animate-fade-in-up max-h-[85vh] overflow-y-auto">
+          <div class="bg-white p-6 border-b rounded-t-2xl flex justify-between items-center sticky top-0 z-10">
+            <h3 class="font-bold text-gray-900 text-xl flex items-center gap-3">
+              <span class="w-1.5 h-8 bg-blue-500 rounded-full inline-block"></span> 
+              {{ isEditingOnboardingActivity ? 'Edit Data' : 'Input Data Baru' }}
+            </h3>
+            <button @click="showOnboardingInputModal = false" class="text-gray-400 hover:text-gray-600 transition-colors">
+              <X :size="24"/>
+            </button>
+          </div>
+          
+          <div class="p-6">
+            <form @submit.prevent="saveOnboardingActivity" class="space-y-5">
+              <!-- Common Fields -->
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="gp-label">PIC GP</label>
+                  <select v-model="formOnboarding.pic_gp" class="gp-input">
+                    <option v-for="pic in picList" :key="pic" :value="pic">{{ pic }}</option>
+                  </select>
+                </div>
+                <div v-if="onboardingTab === 'followup' || onboardingTab === 'meeting'">
+                  <label class="gp-label">PIC Lead</label>
+                  <input v-model="formOnboarding.pic_lead" type="text" class="gp-input">
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="gp-label">Date</label>
+                  <input v-model="formOnboarding.date" type="date" class="gp-input" required>
+                </div>
+                <div v-if="onboardingTab === 'followup' || onboardingTab === 'meeting'">
+                  <label class="gp-label">Objective</label>
+                  <input v-model="formOnboarding.objective" type="text" class="gp-input">
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="gp-label">Start Time</label>
+                  <input v-model="formOnboarding.start_time" type="time" class="gp-input" required>
+                </div>
+                <div>
+                  <label class="gp-label">End Time</label>
+                  <input v-model="formOnboarding.end_time" type="time" class="gp-input">
+                </div>
+              </div>
+
+              <!-- Follow Up Specific -->
+              <div v-if="onboardingTab === 'followup'" class="space-y-4">
+                <div>
+                  <label class="gp-label">Follow Up Type</label>
+                  <select v-model="formOnboarding.fu_type" class="gp-input">
+                    <option>Phone Calls/Telephone</option>
+                    <option>Texting/Chat</option>
+                    <option>Follow up leads</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="gp-label">Notes</label>
+                  <textarea v-model="formOnboarding.notes" rows="4" class="gp-input"></textarea>
+                </div>
+              </div>
+
+              <!-- Meeting Specific -->
+              <div v-if="onboardingTab === 'meeting'" class="space-y-4">
+                <div>
+                  <label class="gp-label">Meeting Type</label>
+                  <select v-model="formOnboarding.meeting_type" class="gp-input">
+                    <option>Visit Meeting</option>
+                    <option>Online Meeting</option>
+                    <option>Office Visit Meeting</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="gp-label">Location</label>
+                  <input v-model="formOnboarding.location" type="text" class="gp-input">
+                </div>
+                <div>
+                  <label class="gp-label">MOM</label>
+                  <textarea v-model="formOnboarding.mom" rows="4" class="gp-input"></textarea>
+                </div>
+              </div>
+
+              <!-- Setup Data Specific -->
+              <div v-if="onboardingTab === 'setupdata'" class="space-y-4">
+                <div>
+                  <label class="gp-label">Setup Type</label>
+                  <input v-model="formOnboarding.setup_type" type="text" class="gp-input" placeholder="e.g. Initial Setup, Data Migration" required>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Product</label>
+                  <input v-model="formOnboarding.product" type="text" class="gp-input" placeholder="e.g. PMS, Channel Manager" required>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Task</label>
+                  <input v-model="formOnboarding.task" type="text" class="gp-input" placeholder="Deskripsi task yang dikerjakan" required>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Status</label>
+                  <select v-model="formOnboarding.status" class="gp-input">
+                    <option>In Progress</option>
+                    <option>Completed</option>
+                    <option>Pending</option>
+                    <option>On Hold</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Notes</label>
+                  <textarea v-model="formOnboarding.setup_notes" rows="4" class="gp-input" placeholder="Detail setup yang dilakukan..."></textarea>
+                </div>
+              </div>
+
+              <!-- Training Specific -->
+              <div v-if="onboardingTab === 'training'" class="space-y-4">
+                <div>
+                  <label class="gp-label">Training Type</label>
+                  <select v-model="formOnboarding.training_type" class="gp-input">
+                    <option>Visit Training</option>
+                    <option>Online Training</option>
+                    <option>Office Visit Training</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Periode</label>
+                  <input v-model="formOnboarding.periode" type="text" class="gp-input" placeholder="e.g. Day 1, Week 1, Phase 1" required>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Module in Charge</label>
+                  <input v-model="formOnboarding.module_in_charge" type="text" class="gp-input" placeholder="Module/materi yang diajarkan" required>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Product</label>
+                  <input v-model="formOnboarding.training_product" type="text" class="gp-input" placeholder="e.g. PMS Pro, Channel Manager" required>
+                </div>
+                
+                <div>
+                  <label class="gp-label">Training Notes</label>
+                  <textarea v-model="formOnboarding.training_notes" rows="4" class="gp-input" placeholder="Catatan hasil training..."></textarea>
+                </div>
+              </div>
+
+              <div class="pt-4 flex justify-end gap-3 border-t mt-6">
+                <button type="button" @click="showOnboardingInputModal = false" class="gp-btn-secondary">
+                  Batal
+                </button>
+                <button type="submit" class="gp-btn-primary">
+                  <Save :size="18"/> Simpan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

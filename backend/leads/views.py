@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Lead, FollowUp, Meeting, Quotation, Deal, DealDetail
 from .serializers import LeadSerializer, FollowUpSerializer, MeetingSerializer, QuotationSerializer, DealSerializer
+from rest_framework import viewsets
 
 class LeadViewSet(viewsets.ModelViewSet):
     queryset = Lead.objects.all().order_by('-created_at')
@@ -26,4 +27,5 @@ class QuotationViewSet(viewsets.ModelViewSet):
 class DealViewSet(viewsets.ModelViewSet):
     queryset = Deal.objects.all()
     serializer_class = DealSerializer
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
+
