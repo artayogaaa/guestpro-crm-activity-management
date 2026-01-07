@@ -23,7 +23,6 @@ const toggleProfileMenu = () => isProfileMenuOpen.value = !isProfileMenuOpen.val
 const currentUsername = ref(localStorage.getItem('username') || 'User');
 
 const handleLogout = () => {
-  // Bersihkan semua data sesi
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('username'); 
@@ -41,7 +40,7 @@ const defaultAvatar = "https://ui-avatars.com/api/?name=User&background=f3f4f6&c
 </script>
 
 <template>
-  <header class="h-20 bg-white flex items-center justify-between px-6 border-b-2 border-[#65a30d] sticky top-0 z-50">
+  <header class="h-20 bg-white flex items-center justify-between px-6 border-b-2 border-[#65a30d] fixed top-0 left-0 right-0 z-50">
     
     <div class="flex items-center gap-6 w-1/3">
       <button 
