@@ -1893,6 +1893,13 @@ onMounted(() => {
                       {{ selectedDeal.gp_pic }}
                     </p>
                   </div>
+                  <div>
+                    <label class="gp-label-detail text-green-600">Deal By</label>
+                    <p class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <User :size="14" class="text-green-600" />
+                      {{ selectedDeal.deal_by }}
+                    </p>
+                  </div>
 
                   <div>
                     <label class="gp-label-detail text-green-600">Date In</label>
