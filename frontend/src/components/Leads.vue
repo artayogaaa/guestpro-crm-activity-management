@@ -39,6 +39,18 @@ const dealTypes = [
   'Refreshment Training', 'Upselling', 'Room Update'
 ];
 
+const trainingTypes = [
+  'Implementation',
+  'Maintenance', 
+  'Migration'
+];
+
+const moduleOptions = [
+  'Angka',
+  'Buah',
+  'Makan'
+];
+
 // =======================================================================
 // STATE DATA
 // =======================================================================
@@ -91,7 +103,6 @@ const showQuotationModal = ref(false);
 
 const showDealModal = ref(false);
 
-// Tambahkan di bagian constants
 const setupTypes = [
   'Setup Implementation',
   'Setup Maintenance', 
@@ -138,7 +149,7 @@ const formOnboarding = ref({
   status: 'On Progress',
   
   // Training Specific
-  training_type: 'Visit Training',
+  training_type: 'Implementation',
   periode: '',
   module_in_charge: '',
   training_product: '',
@@ -180,11 +191,9 @@ const fetchOnboardingActivities = async (leadId, type) => {
     }
     const response = await api.get(endpoint);
     
-    // Filter by lead & map ID sesuai tipe
     onboardingActivityList.value = response.data
       .filter(item => item.lead === leadId)
       .map(item => {
-        // Map primary key sesuai model
         if (type === 'setupdata') return { ...item, id: item.setup_id };
         if (type === 'training') return { ...item, id: item.training_id };
         return item;
@@ -214,14 +223,12 @@ const openOnboardingInputModal = (item = null) => {
   if (item) {
     isEditingOnboardingActivity.value = true;
     
-    // Mapping data sesuai tab
     if (onboardingTab.value === 'setupdata') {
-      // Parse start & end datetime menjadi date + time
       const startDate = item.start ? new Date(item.start) : null;
       const endDate = item.end ? new Date(item.end) : null;
       
       formOnboarding.value = {
-        id: item.setup_id, // PK untuk setup data
+        id: item.setup_id,
         lead: item.lead,
         deal: item.deal,
         pic_gp: item.pic_gp,
@@ -234,8 +241,22 @@ const openOnboardingInputModal = (item = null) => {
         setup_notes: item.notes,
         status: item.status
       };
+    } else if (onboardingTab.value === 'training') {
+      formOnboarding.value = {
+        id: item.training_id,
+        lead: item.lead,
+        deal: item.deal,
+        pic_gp: item.pic_gp,
+        date: item.date,
+        start_time: item.start,
+        end_time: item.end || '',
+        training_type: item.training_type,
+        periode: item.periode,
+        module_in_charge: item.module_in_charge,
+        training_product: item.product,
+        training_notes: item.notes || ''
+      };
     } else {
-      // Existing logic untuk followup/meeting/training
       formOnboarding.value = JSON.parse(JSON.stringify(item));
     }
   } else {
@@ -246,16 +267,23 @@ const openOnboardingInputModal = (item = null) => {
     formOnboarding.value = {
       id: null,
       lead: selectedOnboardingLead.value.lead_id,
-      deal: dealId, // Nanti bisa diambil dari deal yang related
+      deal: dealId,
       pic_gp: selectedOnboardingLead.value.gp_pic,
       date: new Date().toISOString().split('T')[0],
       start_time: '',
       end_time: '',
+      
       setup_type: '',
       product: '',
       task: '',
       setup_notes: '',
-      status: 'On Progress'
+      status: 'On Progress',
+      
+      training_type: 'Implementation',
+      periode: '',
+      module_in_charge: '',
+      training_product: '',
+      training_notes: ''
     };
   }
   showOnboardingInputModal.value = true;
@@ -307,27 +335,21 @@ const saveOnboardingActivity = async () => {
         break;
         
       case 'setupdata': {
-      endpoint = 'setupdata/';
+        endpoint = 'setupdata/';
 
-      try {
-          // 1. Ambil semua data deal
+        try {
           const response = await api.get('deals/');
           const allDeals = response.data;
 
-          // 2. Filter deal yang lead-nya sama, lalu urutkan dari yang terbaru (descending)
           const latestDeal = allDeals
-              .filter(d => d.lead === selectedOnboardingLead.value.lead_id)
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; // Ambil indeks pertama
+            .filter(d => d.lead === selectedOnboardingLead.value.lead_id)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
-          // 3. Validasi jika deal tidak ditemukan
           if (!latestDeal) {
-              showToast('error', 'Lead ini belum memiliki data Deal. Silakan buat Deal terlebih dahulu.');
-              return;
+            showToast('error', 'Lead ini belum memiliki data Deal. Silakan buat Deal terlebih dahulu.');
+            return;
           }
 
-          console.log('✅ Deal Terbaru Ditemukan:', latestDeal.deal_id);
-
-          // 4. Susun Payload
           const startDateTime = formOnboarding.value.date && formOnboarding.value.start_time 
             ? `${formOnboarding.value.date}T${formOnboarding.value.start_time}:00`
             : null;
@@ -337,10 +359,10 @@ const saveOnboardingActivity = async () => {
 
           payload = {
             lead: selectedOnboardingLead.value.lead_id,
-            deal: latestDeal.deal_id, // Terisi otomatis
+            deal: latestDeal.deal_id,
             pic_gp: formOnboarding.value.pic_gp,
             start: startDateTime,
-            end: formOnboarding.value.end_time ? `${formOnboarding.value.date}T${formOnboarding.value.end_time}:00` : null,
+            end: endDateTime,
             setup_type: formOnboarding.value.setup_type,
             product: formOnboarding.value.product,
             task: formOnboarding.value.task,
@@ -348,30 +370,51 @@ const saveOnboardingActivity = async () => {
             status: formOnboarding.value.status
           };
 
-      } catch (error) {
+        } catch (error) {
           console.error('Error finding latest deal:', error);
           showToast('error', 'Gagal mengambil data Deal terbaru.');
           return;
-      }
-      break;
-    }
-        
-      case 'training': 
-        endpoint = 'trainings/';
-        payload = {
-          lead: selectedOnboardingLead.value.lead_id,
-          deal: formOnboarding.value.deal || null,
-          pic_gp: formOnboarding.value.pic_gp,
-          date: formOnboarding.value.date,
-          start: formOnboarding.value.start_time,
-          end: formOnboarding.value.end_time,
-          training_type: formOnboarding.value.training_type,
-          periode: formOnboarding.value.periode,
-          module_in_charge: formOnboarding.value.module_in_charge,
-          product: formOnboarding.value.training_product,
-          notes: formOnboarding.value.training_notes || ''
-        };
+        }
         break;
+      }
+        
+      case 'training': {
+        endpoint = 'trainings/';
+        
+        try {
+          const response = await api.get('deals/');
+          const allDeals = response.data;
+
+          const latestDeal = allDeals
+            .filter(d => d.lead === selectedOnboardingLead.value.lead_id)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+          if (!latestDeal) {
+            showToast('error', 'Lead ini belum memiliki data Deal. Silakan buat Deal terlebih dahulu.');
+            return;
+          }
+
+          payload = {
+            lead: selectedOnboardingLead.value.lead_id,
+            deal: latestDeal.deal_id,
+            pic_gp: formOnboarding.value.pic_gp,
+            date: formOnboarding.value.date,
+            start: formOnboarding.value.start_time,
+            end: formOnboarding.value.end_time || null,
+            training_type: formOnboarding.value.training_type,
+            periode: formOnboarding.value.periode,
+            module_in_charge: formOnboarding.value.module_in_charge,
+            product: formOnboarding.value.training_product,
+            notes: formOnboarding.value.training_notes || ''
+          };
+
+        } catch (error) {
+          console.error('Error finding latest deal:', error);
+          showToast('error', 'Gagal mengambil data Deal terbaru.');
+          return;
+        }
+        break;
+      }
     }
     
     console.log('📤 Endpoint:', endpoint);
@@ -469,12 +512,10 @@ const formDeal = ref({
   room: 0,
   pic_lead: null,
   notes: '',
-  // UI Split: Array terpisah untuk memudahkan input di UI
   products: [],     
   initiations: []   
 });
 
-// --- 3. HELPER LOGIC ---
 const getAvailablePackages = (currentIndex) => {
   const selectedPackages = formDeal.value.products
     .map((item, idx) => idx !== currentIndex ? item.package : null)
@@ -486,14 +527,12 @@ const getProductsForPackage = (pkgName) => {
   return pkgName && productCatalog[pkgName] ? productCatalog[pkgName] : [];
 };
 
-// --- 4. BUTTON ADD/REMOVE ---
 const addDealProductRow = () => {
   formDeal.value.products.push({ package: '', product: '', amount: 0, cycle: 'Month' });
 };
 const removeDealProductRow = (i) => formDeal.value.products.splice(i, 1);
 
 const addDealInitiationRow = () => {
-  // Product di sini menyimpan Nama Service (misal: Visit Training)
   formDeal.value.initiations.push({ product: '', amount: 0 });
 };
 const removeDealInitiationRow = (i) => formDeal.value.initiations.splice(i, 1);
@@ -676,14 +715,11 @@ const saveDeal = async () => {
     const pk = draggedItem.value.lead_id;
     const finalDetails = [];
 
-    // A. Map Products (Main Products)
-    // Masukkan ke field 'product_initiation' sesuai request Model
     formDeal.value.products.forEach(p => {
         if(p.package && p.product) {
             finalDetails.push({
                 package: p.package,
                 
-                // MAPPING UTAMA: Product masuk ke product_initiation
                 product_initiation: p.product,
                 product_initiation_amount: p.amount,
                 product_initiation_amount_by: p.cycle
@@ -691,14 +727,10 @@ const saveDeal = async () => {
         }
     });
 
-    // B. Map Initiations (Services)
-    // Juga dimasukkan ke field 'product_initiation'
     formDeal.value.initiations.forEach(i => {
         if(i.product) { 
             finalDetails.push({
-                package: 'Initiation', // Penanda Kategori
-                
-                // MAPPING UTAMA: Service Name masuk ke product_initiation
+                package: 'Initiation',
                 product_initiation: i.product, 
                 product_initiation_amount: i.amount,
                 product_initiation_amount_by: 'One-time Cost' 
@@ -711,11 +743,9 @@ const saveDeal = async () => {
         details: finalDetails
     };
     
-    // Bersihkan array temporary
     delete payload.products;
     delete payload.initiations;
 
-    // Kirim
     await api.patch(`leads/${pk}/`, { status_kanban: 'deals' });
     await api.post('deals/', payload);
 
@@ -932,7 +962,6 @@ const reverseGeocode = async (lat, lng) => {
 watch(
   [showEditModal, showInputModal, showFollowUpModal, activeDragTab, () => formActivity.value.meeting_type],
   async ([leadOpen, inputOpen, followUpOpen, activeTab, meetingType]) => {
-    // Init map untuk Edit Lead Modal
     if (leadOpen) {
       console.log('👀 Edit modal opened')
       await nextTick()
@@ -941,17 +970,14 @@ watch(
       }, 400)
     }
     
-    // Init map untuk Meeting Modal di Follow Up Modal
     if (followUpOpen && activeTab === 'meeting' && meetingType === 'Visit Meeting') {
       console.log('🗺️ Follow Up Modal - Meeting with Visit Meeting')
       await nextTick()
-      // Delay lebih lama karena DOM belum ready
       setTimeout(() => {
         initMeetingMap()
       }, 800)
     }
     
-    // Init map untuk Input Modal
     if (inputOpen && activityTab.value === 'meeting' && meetingType === 'Visit Meeting') {
       console.log('🗺️ Input Modal - Meeting with Visit Meeting')
       await nextTick()
@@ -964,9 +990,9 @@ watch(
 
 watch(() => formOnboarding.value.end_time, (newEndTime) => {
   if (newEndTime && newEndTime !== "") {
-    formOnboarding.value.status = 'Done'; // Otomatis 'Done' jika waktu diisi
+    formOnboarding.value.status = 'Done';
   } else {
-    formOnboarding.value.status = 'On Progress'; // Kembali ke 'On Progress' jika waktu dihapus
+    formOnboarding.value.status = 'On Progress';
   }
 });
 
@@ -2887,35 +2913,58 @@ onMounted(() => {
                 </div>
               </div>
 
-              <!-- Training Specific -->
+              <!-- Training Specific Fields (di dalam showOnboardingInputModal) -->
               <div v-if="onboardingTab === 'training'" class="space-y-4">
                 <div>
                   <label class="gp-label">Training Type</label>
-                  <select v-model="formOnboarding.training_type" class="gp-input">
-                    <option>Visit Training</option>
-                    <option>Online Training</option>
-                    <option>Office Visit Training</option>
+                  <select v-model="formOnboarding.training_type" class="gp-input" required>
+                    <option value="" disabled>-- Pilih Training Type --</option>
+                    <option value="Implementation">Implementation</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Migration">Migration</option>
                   </select>
                 </div>
                 
                 <div>
                   <label class="gp-label">Periode</label>
-                  <input v-model="formOnboarding.periode" type="text" class="gp-input" placeholder="e.g. Day 1, Week 1, Phase 1" required>
+                  <input 
+                    v-model="formOnboarding.periode" 
+                    type="text" 
+                    class="gp-input" 
+                    placeholder="e.g. Day 1, Week 1, Phase 1" 
+                    required
+                  >
                 </div>
                 
                 <div>
                   <label class="gp-label">Module in Charge</label>
-                  <input v-model="formOnboarding.module_in_charge" type="text" class="gp-input" placeholder="Module/materi yang diajarkan" required>
+                  <select v-model="formOnboarding.module_in_charge" class="gp-input" required>
+                    <option value="" disabled>-- Pilih Module --</option>
+                    <option value="Angka">Angka</option>
+                    <option value="Buah">Buah</option>
+                    <option value="Makan">Makan</option>
+                  </select>
                 </div>
                 
                 <div>
                   <label class="gp-label">Product</label>
-                  <input v-model="formOnboarding.training_product" type="text" class="gp-input" placeholder="e.g. PMS Pro, Channel Manager" required>
+                  <input 
+                    v-model="formOnboarding.training_product" 
+                    type="text" 
+                    class="gp-input" 
+                    placeholder="e.g. PMS Pro, Channel Manager" 
+                    required
+                  >
                 </div>
                 
                 <div>
                   <label class="gp-label">Training Notes</label>
-                  <textarea v-model="formOnboarding.training_notes" rows="4" class="gp-input" placeholder="Catatan hasil training..."></textarea>
+                  <textarea 
+                    v-model="formOnboarding.training_notes" 
+                    rows="4" 
+                    class="gp-input" 
+                    placeholder="Catatan hasil training..."
+                  ></textarea>
                 </div>
               </div>
 

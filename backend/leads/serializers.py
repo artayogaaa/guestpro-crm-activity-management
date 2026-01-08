@@ -128,3 +128,13 @@ class SetupDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = SetupData
         fields = '__all__'
+
+class TrainingSerializer(serializers.ModelSerializer):
+    # Extra fields untuk display di Frontend (Read Only)
+    lead_property = serializers.CharField(source='lead.property', read_only=True)
+    deal_id_display = serializers.CharField(source='deal.deal_id', read_only=True)
+    
+    class Meta:
+        model = Training
+        fields = '__all__'
+        read_only_fields = ['training_id']

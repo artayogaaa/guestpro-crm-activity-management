@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Lead, FollowUp, Meeting, Quotation, Deal, DealDetail, SetupData
-from .serializers import LeadSerializer, FollowUpSerializer, MeetingSerializer, QuotationSerializer, DealSerializer, SetupDataSerializer
+from .serializers import LeadSerializer, FollowUpSerializer, MeetingSerializer, QuotationSerializer, DealSerializer, SetupDataSerializer, TrainingSerializer
 from rest_framework import viewsets
 from .models import SetupData, Training
 from .serializers import SetupDataSerializer
@@ -111,3 +111,20 @@ def setupdata_detail(request, pk):
         logger.info(f"✅ Deleted ID: {setup_id}")
         
         return Response({'message': 'Deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    
+class TrainingViewSet(viewsets.ModelViewSet):
+    queryset = Training.objects.all().select_related('lead', 'deal')
+    serializer_class = TrainingSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        lead_id = self.request.query_params.get('lead', None)
+        deal_id = self.request.query_params.get('deal', None)
+        
+        if lead_id:
+            queryset = queryset.filter(lead=lead_id)
+        if deal_id:
+            queryset = queryset.filter(deal=deal_id)
+            
+        return queryset.order_by('-created_at')
