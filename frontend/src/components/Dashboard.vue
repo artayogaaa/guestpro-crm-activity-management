@@ -89,13 +89,13 @@ onMounted(() => { fetchActivities(); });
 
 <template>
   <MainLayout>
-    
+    <div class="pt-28"></div>
     <div class="flex justify-between items-center mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-800">Activity List</h1>
         <p class="text-gray-500">Kelola kegiatan harian Anda di sini.</p>
       </div>
-      <button @click="openFormModal()" class="bg-[#65a30d] hover:bg-[#4d7c0f] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
+      <button @click="openFormModal()" class="bg-[#8bc34a] hover:bg-[#7cb342] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
         <Plus :size="20" /> Tambah Data
       </button>
     </div>
@@ -171,6 +171,7 @@ onMounted(() => { fetchActivities(); });
 </template>
 
 <style scoped>
+
 @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); } }
 .animate-bounce-in { animation: bounceIn 0.4s cubic-bezier(0.215, 0.610, 0.355, 1.000); }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

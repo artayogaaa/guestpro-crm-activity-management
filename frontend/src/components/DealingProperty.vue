@@ -153,6 +153,7 @@ onMounted(() => fetchDeals());
 
 <template>
   <MainLayout>
+    <div class="pt-24"></div>
     <div class="flex flex-col h-[calc(100vh-80px)] bg-gray-50 p-4">
       
       <div class="mb-6">
@@ -186,7 +187,7 @@ onMounted(() => fetchDeals());
          </div>
       </div>
 
-      <div class="bg-white border-t-4 border-t-green-500 rounded shadow-sm overflow-hidden flex-1 flex flex-col relative">
+      <div class="bg-white border-t-4 border-[#8bc34a] rounded shadow-sm overflow-hidden flex-1 flex flex-col relative">
         <div class="overflow-auto flex-1">
           <table class="w-full text-left text-sm border-collapse">
             <thead class="bg-white text-gray-700 font-bold uppercase text-[10px] leading-normal border-b border-gray-200 sticky top-0 z-20 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -227,7 +228,7 @@ onMounted(() => fetchDeals());
                 
                 <td class="p-3 border-r border-gray-200 text-center align-middle bg-white group-hover:bg-blue-50/10 sticky left-0 z-10">
                     <div class="flex flex-col gap-1.5 items-center">
-                        <button @click="openProductModal(deal)" class="w-16 py-1 bg-[#c0a145] hover:bg-[#a3883a] text-white text-[10px] rounded shadow-sm transition">
+                        <button @click="openProductModal(deal)" class="w-16 py-1 bg-[#8bc34a] hover:bg-[#7cb342] text-white text-[10px] rounded shadow-sm transition">
                             Edit
                         </button>
                     </div>

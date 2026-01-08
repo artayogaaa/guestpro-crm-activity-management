@@ -1,19 +1,60 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Lead, FollowUp, Meeting, Quotation, Deal, DealDetail, SetupData
-from .serializers import LeadSerializer, FollowUpSerializer, MeetingSerializer, QuotationSerializer, DealSerializer, SetupDataSerializer, TrainingSerializer
+from .serializers import LeadSerializer, FollowUpSerializer, MeetingSerializer, QuotationSerializer, DealSerializer, SetupDataSerializer, TrainingSerializer, LeadTableSerializer
 from rest_framework import viewsets
 from .models import SetupData, Training
 from .serializers import SetupDataSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 import logging
 
 class LeadViewSet(viewsets.ModelViewSet):
-    queryset = Lead.objects.all().order_by('-created_at')
-    serializer_class = LeadSerializer
+    queryset = Lead.objects.all().prefetch_related('pics')
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        # Gunakan LeadTableSerializer untuk table view
+        if self.action == 'table_view':
+            return LeadTableSerializer
+        return LeadSerializer
+    
+    @action(detail=False, methods=['get'])
+    def table_view(self, request):
+        """
+        Custom endpoint untuk table view
+        URL: /api/leads/table_view/
+        """
+        queryset = self.get_queryset().order_by('-created_at')
+        
+        # Filter by status_kanban if provided
+        status = request.query_params.get('status', None)
+        if status:
+            queryset = queryset.filter(status_kanban=status)
+        
+        # Filter by gp_pic if provided
+        gp_pic = request.query_params.get('gp_pic', None)
+        if gp_pic:
+            queryset = queryset.filter(gp_pic=gp_pic)
+        
+        # Search by property name
+        search = request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(property__icontains=search)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    # Method existing lainnya tetap ada
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        lead_id = self.request.query_params.get('lead_id', None)
+        if lead_id:
+            queryset = queryset.filter(lead_id=lead_id)
+        return queryset
 
 class FollowUpViewSet(viewsets.ModelViewSet):
     queryset = FollowUp.objects.all()

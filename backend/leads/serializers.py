@@ -139,3 +139,48 @@ class TrainingSerializer(serializers.ModelSerializer):
         model = Training
         fields = '__all__'
         read_only_fields = ['training_id']
+
+class LeadTableSerializer(serializers.ModelSerializer):
+    """
+    Serializer khusus untuk Lead Table View
+    Menampilkan data lead dengan format flat untuk spreadsheet
+    """
+    # Read-only fields untuk display PIC pertama
+    first_pic_name = serializers.SerializerMethodField()
+    first_pic_phone = serializers.SerializerMethodField()
+    first_pic_whatsapp = serializers.SerializerMethodField()
+    first_pic_email = serializers.SerializerMethodField()
+    
+    # Total PICs count
+    total_pics = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Lead
+        fields = [
+            'lead_id', 'property', 'source', 'type',
+            'coordinates', 'address', 'gp_pic', 'date_in',
+            'status_kanban', 'referral_or_affiliate_by', 
+            'commission_amount', 'created_at', 'edited_at',
+            'first_pic_name', 'first_pic_phone', 
+            'first_pic_whatsapp', 'first_pic_email', 'total_pics'
+        ]
+        read_only_fields = ['lead_id', 'created_at', 'edited_at']
+    
+    def get_first_pic_name(self, obj):
+        first_pic = obj.pics.first()
+        return first_pic.pic_name if first_pic else '-'
+    
+    def get_first_pic_phone(self, obj):
+        first_pic = obj.pics.first()
+        return first_pic.phone_number if first_pic else '-'
+    
+    def get_first_pic_whatsapp(self, obj):
+        first_pic = obj.pics.first()
+        return first_pic.whatsapp if first_pic else '-'
+    
+    def get_first_pic_email(self, obj):
+        first_pic = obj.pics.first()
+        return first_pic.email if first_pic else '-'
+    
+    def get_total_pics(self, obj):
+        return obj.pics.count()

@@ -9,6 +9,7 @@ import DealingProperty from '../components/DealingProperty.vue';
 // Jika belum ada, buat file Dashboard.vue dan UserManagement.vue (lihat kode di bawah)
 import Dashboard from '../components/Dashboard.vue'; 
 import UserManagement from '../components/UserManagement.vue';
+import LeadTable from '../components/LeadTable.vue';
 
 const routes = [
   { 
@@ -39,6 +40,12 @@ const routes = [
     path: '/users', 
     name: 'UserManagement', 
     component: UserManagement, // Sekarang menggunakan component asli
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/leadTable', 
+    name: 'LeadTable', 
+    component: LeadTable, // Sekarang menggunakan component asli
     meta: { requiresAuth: true }
   },
 ];

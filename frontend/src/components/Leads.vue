@@ -1153,10 +1153,11 @@ onMounted(() => {
 
 <template>
   <MainLayout>
+    <div class="pt-10"></div>
     <div class="pipeline-container">
       <div class="pipeline-header">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Leads Pipeline</h1>
+          <h1 class="text-2xl font-bold textbg-[#8bc34a] hover:bg-[#7cb342]">Leads Pipeline</h1>
           <p class="text-sm text-gray-600 mt-1">Geser kartu untuk memproses. Double klik kartu untuk detail.</p>
         </div>
       </div>
@@ -2622,12 +2623,12 @@ onMounted(() => {
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col overflow-hidden relative animate-fade-in-up">
           
           <!-- Header -->
-          <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 border-b shrink-0">
+          <div class="bg-gradient-to-r from-white to-green-50 p-6 border-b shrink-0">
             <div class="flex justify-between items-start mb-5">
               <div>
                 <h2 class="text-3xl font-bold text-gray-900">{{ selectedOnboardingLead.property }}</h2>
                 <div class="flex items-center gap-2 mt-3">
-                  <span class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-full font-bold shadow-sm">Onboarding</span>
+                  <span class="text-xs bg-[#8bc34a] text-white px-3 py-1.5 rounded-full font-bold shadow-sm">Onboarding</span>
                   <span class="text-xs bg-gray-200 text-gray-800 px-3 py-1.5 rounded-full font-bold shadow-sm">{{ selectedOnboardingLead.source }}</span>
                 </div>
               </div>
@@ -2672,16 +2673,16 @@ onMounted(() => {
           <div class="flex-1 flex flex-col bg-white overflow-hidden">
             <div class="flex justify-between items-center px-6 py-4 border-b-2 bg-white">
               <div class="flex bg-gray-100 p-1.5 rounded-xl shadow-inner">
-                <button @click="switchOnboardingTab('followup')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='followup' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                <button @click="switchOnboardingTab('followup')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='followup' ? 'bg-white shadow-md text-[#8bc34a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
                   Follow Up
                 </button>
-                <button @click="switchOnboardingTab('meeting')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='meeting' ? 'bg-white shadow-md text-orange-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                <button @click="switchOnboardingTab('meeting')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='meeting' ? 'bg-white shadow-md text-[#8bc34a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
                   Meeting
                 </button>
-                <button @click="switchOnboardingTab('setupdata')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='setupdata' ? 'bg-white shadow-md text-purple-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                <button @click="switchOnboardingTab('setupdata')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='setupdata' ? 'bg-white shadow-md text-[#8bc34a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
                   Setup Data
                 </button>
-                <button @click="switchOnboardingTab('training')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='training' ? 'bg-white shadow-md text-green-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
+                <button @click="switchOnboardingTab('training')" class="px-5 py-2 text-sm font-bold rounded-lg transition-all" :class="onboardingTab==='training' ? 'bg-white shadow-md text-[#8bc34a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
                   Training
                 </button>
               </div>
@@ -3025,7 +3026,7 @@ onMounted(() => {
 .pipeline-container {
   @apply w-full;
   position: relative;
-  padding-top: 1.5rem; /* Add padding to prevent text being cut */
+  padding-top: 1.5rem;
 }
 
 .pipeline-header {
@@ -3037,16 +3038,49 @@ onMounted(() => {
 
 .pipeline-board {
   @apply flex gap-4 pb-8 items-start;
-  height: calc(100vh - 260px); /* Adjusted for extra padding */
+  height: calc(100vh - 260px);
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
-  /* Smooth scrolling */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Custom scrollbar */
+/* Scrollable Column Wrapper */
+.pipeline-board > div {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent double scrollbars */
+}
+
+/* Make draggable areas scrollable */
+.pipeline-board .flex-1 {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px; /* Space for scrollbar */
+}
+
+/* Custom scrollbar for columns */
+.pipeline-board .flex-1::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pipeline-board .flex-1::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.pipeline-board .flex-1::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.pipeline-board .flex-1::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom scrollbar for horizontal board scroll */
 .pipeline-board::-webkit-scrollbar {
   height: 8px;
 }
@@ -3067,7 +3101,7 @@ onMounted(() => {
 
 /* GuestPro Design System */
 .gp-btn-primary {
-  @apply bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-bold rounded-xl px-4 py-2.5 shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2;
+  @apply bg-[#8bc34a] hover:bg-[#7cb342] text-white font-bold rounded-xl px-4 py-2.5 shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2;
 }
 
 .gp-btn-secondary {

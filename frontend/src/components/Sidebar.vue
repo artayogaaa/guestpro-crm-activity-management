@@ -2,7 +2,8 @@
 import { 
   Home, Users, Calendar, Settings, LogOut,
   LayoutGrid, ShoppingCart, TrendingUp, FolderOpen, Bell, MessageSquare, Briefcase, 
-  ChevronLeft, ChevronRight, UserCog 
+  ChevronLeft, ChevronRight, UserCog, 
+  Table
 } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import { useSidebar } from '../composables/useSidebar';
@@ -22,7 +23,7 @@ const menuItems = [
   { name: 'Leads / Contacts', icon: Users, route: '/leads' },
   // --- MENU BARU ---
   { name: 'Dealing Property', icon: Briefcase, route: '/dealing-property' },
-  
+  { name: 'Lead Table', icon: Table, route: '/leadTable' },
   { name: 'User Management', icon: UserCog, route: '/users' },
 ];
 </script>
@@ -38,7 +39,7 @@ const menuItems = [
     }"
   >
     
-    <nav class="flex-1 px-1 py-4 space-y-1">
+    <nav class="flex-1 px-1 py-4 space-y-1 pt-12">
       <router-link 
         v-for="item in menuItems" 
         :key="item.name" 
@@ -62,7 +63,7 @@ const menuItems = [
     <div class="px-3 py-4 border-t border-gray-200 text-sm">
       <button 
         @click="toggleSidebarCollapse" 
-        class="absolute -right-3 top-1/2 -translate-y-1/2 bg-green-600 text-white p-1 rounded-full shadow-md hover:bg-green-700 transition"
+        class="absolute -right-3 top-1/2 -translate-y-1/2 text-white p-1 rounded-full shadow-md bg-[#8bc34a] hover:bg-[#7cb342] transition"
         :class="{ 'hidden': !isSidebarOpen }"
       >
         <ChevronLeft :size="16" v-if="!isSidebarCollapsed" />

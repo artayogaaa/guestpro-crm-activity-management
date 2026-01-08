@@ -82,6 +82,7 @@ onMounted(() => {
 
 <template>
   <MainLayout>
+    <div class="pt-24"></div>
     <div class="mb-6 flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
@@ -107,7 +108,7 @@ onMounted(() => {
             <td class="p-4 font-mono text-gray-500">#{{ user.id }}</td>
             <td class="p-4">
               <div class="flex items-center gap-3">
-                <div class="bg-blue-100 p-2 rounded-full text-blue-600">
+                <div class="bg-[#8bc34a] p-2 rounded-full text-white">
                   <User :size="16" />
                 </div>
                 <span class="font-bold text-gray-700">{{ user.username }}</span>
