@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 # Import ViewSets
 from activities.views import ActivityViewSet
-from leads.views import LeadViewSet, FollowUpViewSet, MeetingViewSet, QuotationViewSet, DealViewSet
+from leads.views import LeadViewSet, FollowUpViewSet, MeetingViewSet, QuotationViewSet, DealViewSet, setupdata_list, setupdata_detail, SetupDataViewSet, TrainingViewSet
 # Import dari Core
 from core.views import RegisterView, UserViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -17,6 +17,8 @@ router.register(r'meetings', MeetingViewSet)
 router.register(r'quotations', QuotationViewSet)
 router.register(r'users', UserViewSet)
 router.register(r'deals', DealViewSet)
+router.register(r'setupdata', SetupDataViewSet, basename='setupdata')
+router.register(r'trainings', TrainingViewSet, basename='training')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,4 +30,6 @@ urlpatterns = [
 
     # API Routes
     path('api/', include(router.urls)),
+    path('setupdata/', setupdata_list, name='setupdata-list'),
+    path('setupdata/<str:pk>/', setupdata_detail, name='setupdata-detail'),
 ]
