@@ -91,6 +91,60 @@ const showQuotationModal = ref(false);
 
 const showDealModal = ref(false);
 
+// Tambahkan di bagian constants
+const setupTypes = [
+  'Setup Implementation',
+  'Setup Maintenance', 
+  'Setup Migration'
+];
+
+const taskOptions = [
+  'Setup Master Data',
+  'Reservation Transaction Import',
+  'POS Transaction Import',
+  'Accounting Transaction Import',
+  'Mapping',
+  'Others',
+  'Setup Printer',
+  'Setup Printed & Adapter'
+];
+
+const formOnboarding = ref({
+  id: null,
+  lead: null,
+  deal: null,
+  pic_gp: '',
+  
+  // Common fields
+  date: new Date().toISOString().split('T')[0],
+  start_time: '',
+  end_time: '',
+  
+  // Follow Up & Meeting
+  pic_lead: '',
+  objective: 'Onboarding',
+  stage: 'Onboarding',
+  fu_type: 'Phone Calls/Telephone',
+  notes: '',
+  meeting_type: 'Visit Meeting',
+  location: '',
+  mom: '',
+  
+  // Setup Data Specific
+  setup_type: '',
+  product: '',
+  task: '',
+  setup_notes: '',
+  status: 'On Progress',
+  
+  // Training Specific
+  training_type: 'Visit Training',
+  periode: '',
+  module_in_charge: '',
+  training_product: '',
+  training_notes: ''
+});
+
 // =======================================================================
 // HELPER & COMPUTED
 // =======================================================================
@@ -125,8 +179,19 @@ const fetchOnboardingActivities = async (leadId, type) => {
       case 'training': endpoint = 'trainings/'; break;
     }
     const response = await api.get(endpoint);
-    onboardingActivityList.value = response.data.filter(item => item.lead === leadId);
+    
+    // Filter by lead & map ID sesuai tipe
+    onboardingActivityList.value = response.data
+      .filter(item => item.lead === leadId)
+      .map(item => {
+        // Map primary key sesuai model
+        if (type === 'setupdata') return { ...item, id: item.setup_id };
+        if (type === 'training') return { ...item, id: item.training_id };
+        return item;
+      });
+      
   } catch (error) {
+    console.error('Error fetching:', error.response?.data);
     showToast('error', 'Gagal memuat riwayat onboarding');
   }
 };
@@ -148,43 +213,60 @@ const switchOnboardingTab = async (tab) => {
 const openOnboardingInputModal = (item = null) => {
   if (item) {
     isEditingOnboardingActivity.value = true;
-    formOnboarding.value = JSON.parse(JSON.stringify(item));
+    
+    // Mapping data sesuai tab
+    if (onboardingTab.value === 'setupdata') {
+      // Parse start & end datetime menjadi date + time
+      const startDate = item.start ? new Date(item.start) : null;
+      const endDate = item.end ? new Date(item.end) : null;
+      
+      formOnboarding.value = {
+        id: item.setup_id, // PK untuk setup data
+        lead: item.lead,
+        deal: item.deal,
+        pic_gp: item.pic_gp,
+        date: startDate ? startDate.toISOString().split('T')[0] : '',
+        start_time: startDate ? startDate.toTimeString().slice(0,5) : '',
+        end_time: endDate ? endDate.toTimeString().slice(0,5) : '',
+        setup_type: item.setup_type,
+        product: item.product,
+        task: item.task,
+        setup_notes: item.notes,
+        status: item.status
+      };
+    } else {
+      // Existing logic untuk followup/meeting/training
+      formOnboarding.value = JSON.parse(JSON.stringify(item));
+    }
   } else {
     isEditingOnboardingActivity.value = false;
+
+    const dealId = selectedOnboardingLead.value.deal_id || null;
+
     formOnboarding.value = {
       id: null,
       lead: selectedOnboardingLead.value.lead_id,
-      deal: selectedOnboardingLead.value.deal_id || null,
+      deal: dealId, // Nanti bisa diambil dari deal yang related
       pic_gp: selectedOnboardingLead.value.gp_pic,
-      pic_lead: '',
       date: new Date().toISOString().split('T')[0],
       start_time: '',
       end_time: '',
-      objective: 'Onboarding',
-      stage: 'Onboarding',
-      fu_type: 'Phone Calls/Telephone',
-      notes: '',
-      meeting_type: 'Visit Meeting',
-      location: '',
-      mom: '',
-      start: '',
-      end: '',
       setup_type: '',
       product: '',
       task: '',
       setup_notes: '',
-      status: 'In Progress',
-      training_type: 'Visit Training',
-      periode: '',
-      module_in_charge: '',
-      training_product: '',
-      training_notes: ''
+      status: 'On Progress'
     };
   }
   showOnboardingInputModal.value = true;
 };
 
 const saveOnboardingActivity = async () => {
+  console.log('🔵 === START saveOnboardingActivity ===');
+  console.log('📌 onboardingTab:', onboardingTab.value);
+  console.log('📌 isEditing:', isEditingOnboardingActivity.value);
+  console.log('📌 formOnboarding RAW:', JSON.stringify(formOnboarding.value, null, 2));
+  
   try {
     let endpoint = '';
     let payload = {};
@@ -219,38 +301,66 @@ const saveOnboardingActivity = async () => {
           stage: 'Onboarding',
           meeting_type: formOnboarding.value.meeting_type,
           location: formOnboarding.value.location,
+          coordinates: formOnboarding.value.coordinates || '',
           mom: formOnboarding.value.mom
         };
         break;
         
-      case 'setupdata': 
-        endpoint = 'setupdata/';
-        const startDateTime = formOnboarding.value.date && formOnboarding.value.start_time 
-          ? `${formOnboarding.value.date}T${formOnboarding.value.start_time}`
-          : null;
-        const endDateTime = formOnboarding.value.date && formOnboarding.value.end_time 
-          ? `${formOnboarding.value.date}T${formOnboarding.value.end_time}`
-          : null;
-          
-        payload = {
-          lead: selectedOnboardingLead.value.lead_id,
-          deal: formOnboarding.value.deal,
-          pic_gp: formOnboarding.value.pic_gp,
-          start: startDateTime,
-          end: endDateTime,
-          setup_type: formOnboarding.value.setup_type,
-          product: formOnboarding.value.product,
-          task: formOnboarding.value.task,
-          notes: formOnboarding.value.setup_notes,
-          status: formOnboarding.value.status
-        };
-        break;
+      case 'setupdata': {
+      endpoint = 'setupdata/';
+
+      try {
+          // 1. Ambil semua data deal
+          const response = await api.get('deals/');
+          const allDeals = response.data;
+
+          // 2. Filter deal yang lead-nya sama, lalu urutkan dari yang terbaru (descending)
+          const latestDeal = allDeals
+              .filter(d => d.lead === selectedOnboardingLead.value.lead_id)
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; // Ambil indeks pertama
+
+          // 3. Validasi jika deal tidak ditemukan
+          if (!latestDeal) {
+              showToast('error', 'Lead ini belum memiliki data Deal. Silakan buat Deal terlebih dahulu.');
+              return;
+          }
+
+          console.log('✅ Deal Terbaru Ditemukan:', latestDeal.deal_id);
+
+          // 4. Susun Payload
+          const startDateTime = formOnboarding.value.date && formOnboarding.value.start_time 
+            ? `${formOnboarding.value.date}T${formOnboarding.value.start_time}:00`
+            : null;
+          const endDateTime = formOnboarding.value.date && formOnboarding.value.end_time 
+            ? `${formOnboarding.value.date}T${formOnboarding.value.end_time}:00`
+            : null;
+
+          payload = {
+            lead: selectedOnboardingLead.value.lead_id,
+            deal: latestDeal.deal_id, // Terisi otomatis
+            pic_gp: formOnboarding.value.pic_gp,
+            start: startDateTime,
+            end: formOnboarding.value.end_time ? `${formOnboarding.value.date}T${formOnboarding.value.end_time}:00` : null,
+            setup_type: formOnboarding.value.setup_type,
+            product: formOnboarding.value.product,
+            task: formOnboarding.value.task,
+            notes: formOnboarding.value.setup_notes || '',
+            status: formOnboarding.value.status
+          };
+
+      } catch (error) {
+          console.error('Error finding latest deal:', error);
+          showToast('error', 'Gagal mengambil data Deal terbaru.');
+          return;
+      }
+      break;
+    }
         
       case 'training': 
         endpoint = 'trainings/';
         payload = {
           lead: selectedOnboardingLead.value.lead_id,
-          deal: formOnboarding.value.deal,
+          deal: formOnboarding.value.deal || null,
           pic_gp: formOnboarding.value.pic_gp,
           date: formOnboarding.value.date,
           start: formOnboarding.value.start_time,
@@ -259,23 +369,41 @@ const saveOnboardingActivity = async () => {
           periode: formOnboarding.value.periode,
           module_in_charge: formOnboarding.value.module_in_charge,
           product: formOnboarding.value.training_product,
-          notes: formOnboarding.value.training_notes
+          notes: formOnboarding.value.training_notes || ''
         };
         break;
     }
     
+    console.log('📤 Endpoint:', endpoint);
+    console.log('📤 Payload:', JSON.stringify(payload, null, 2));
+    
+    let response;
     if (isEditingOnboardingActivity.value) {
-      await api.put(`${endpoint}${formOnboarding.value.id}/`, payload);
+      console.log('✏️ UPDATE Mode - ID:', formOnboarding.value.id);
+      response = await api.put(`${endpoint}${formOnboarding.value.id}/`, payload);
+      console.log('✅ UPDATE Response:', response.data);
     } else {
-      await api.post(endpoint, payload);
+      console.log('➕ CREATE Mode');
+      response = await api.post(endpoint, payload);
+      console.log('✅ CREATE Response:', response.data);
     }
     
     showToast('success', 'Data tersimpan');
     showOnboardingInputModal.value = false;
     fetchOnboardingActivities(selectedOnboardingLead.value.lead_id, onboardingTab.value);
+    
+    console.log('🟢 === END saveOnboardingActivity SUCCESS ===');
+    
   } catch (error) {
-    console.error('Error saving:', error.response?.data);
-    showToast('error', 'Gagal simpan');
+    console.error('🔴 === ERROR saveOnboardingActivity ===');
+    console.error('❌ Error Object:', error);
+    console.error('❌ Error Response:', error.response);
+    console.error('❌ Error Data:', JSON.stringify(error.response?.data, null, 2));
+    console.error('❌ Error Status:', error.response?.status);
+    console.error('❌ Error Headers:', error.response?.headers);
+    console.error('🔴 === END ERROR ===');
+    
+    showToast('error', `Gagal simpan: ${error.response?.data?.detail || error.message}`);
   }
 };
 
@@ -833,6 +961,14 @@ watch(
     }
   }
 )
+
+watch(() => formOnboarding.value.end_time, (newEndTime) => {
+  if (newEndTime && newEndTime !== "") {
+    formOnboarding.value.status = 'Done'; // Otomatis 'Done' jika waktu diisi
+  } else {
+    formOnboarding.value.status = 'On Progress'; // Kembali ke 'On Progress' jika waktu dihapus
+  }
+});
 
 // =======================================================================
 // MEETING MAP
@@ -2517,7 +2653,7 @@ onMounted(() => {
                     <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-32">Setup Type</th>
                     <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-32">Product</th>
                     <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-40">Task</th>
-                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-32">Status</th>
+                    <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2 w-34">Status</th>
                     <th v-if="onboardingTab === 'setupdata'" class="p-4 border-b-2">Notes</th>
                     
                     <!-- Training Columns -->
@@ -2669,7 +2805,11 @@ onMounted(() => {
                 </div>
                 <div>
                   <label class="gp-label">End Time</label>
-                  <input v-model="formOnboarding.end_time" type="time" class="gp-input">
+                  <input 
+                    v-model="formOnboarding.end_time" 
+                    type="time" 
+                    class="gp-input"
+                  >
                 </div>
               </div>
 
@@ -2713,7 +2853,10 @@ onMounted(() => {
               <div v-if="onboardingTab === 'setupdata'" class="space-y-4">
                 <div>
                   <label class="gp-label">Setup Type</label>
-                  <input v-model="formOnboarding.setup_type" type="text" class="gp-input" placeholder="e.g. Initial Setup, Data Migration" required>
+                  <select v-model="formOnboarding.setup_type" class="gp-input" required>
+                    <option value="" disabled>-- Pilih Setup Type --</option>
+                    <option v-for="type in setupTypes" :key="type">{{ type }}</option>
+                  </select>
                 </div>
                 
                 <div>
@@ -2723,16 +2866,18 @@ onMounted(() => {
                 
                 <div>
                   <label class="gp-label">Task</label>
-                  <input v-model="formOnboarding.task" type="text" class="gp-input" placeholder="Deskripsi task yang dikerjakan" required>
+                  <select v-model="formOnboarding.task" class="gp-input" required>
+                    <option value="" disabled>-- Pilih Task --</option>
+                    <option v-for="task in taskOptions" :key="task">{{ task }}</option>
+                  </select>
                 </div>
                 
                 <div>
                   <label class="gp-label">Status</label>
                   <select v-model="formOnboarding.status" class="gp-input">
-                    <option>In Progress</option>
-                    <option>Completed</option>
-                    <option>Pending</option>
-                    <option>On Hold</option>
+                    <option value="On Progress">On Progress</option>
+                    <option value="Done">Done</option>
+                    <option value="Pending">Pending</option>
                   </select>
                 </div>
                 

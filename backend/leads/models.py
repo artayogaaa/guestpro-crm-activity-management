@@ -214,15 +214,14 @@ class Training(models.Model):
     pic_gp = models.CharField(max_length=100)
 
     date = models.DateField()
-    start = models.TimeField()  # input manual
-    end = models.TimeField(blank=True, null=True)  # diisi saat detail
+    start = models.TimeField()
+    end = models.TimeField(blank=True, null=True)
 
-    training_type = models.CharField(max_length=100)
+    training_type = models.CharField(max_length=100)  # No choices, handled in frontend
     periode = models.CharField(max_length=100)
-    module_in_charge = models.CharField(max_length=255)
-
+    module_in_charge = models.CharField(max_length=255)  # No choices, handled in frontend
     product = models.CharField(max_length=255)
-    notes = models.CharField(max_length=500, blank=True)
+    notes = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(auto_now=True)
@@ -231,4 +230,4 @@ class Training(models.Model):
         db_table = 'training'
 
     def __str__(self):
-        return self.training_id
+        return f"{self.training_id} - {self.lead.property}"

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Lead, LeadPIC, FollowUp, Meeting, Quotation, Deal, DealDetail
+from .models import SetupData, Training
 
 class LeadPICSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False) # Agar update bisa terima ID 
@@ -118,4 +119,12 @@ class DealSerializer(serializers.ModelSerializer):
         
         return instance
     
+class SetupDataSerializer(serializers.ModelSerializer):
+    # Extra fields untuk display (optional)
+    deal = serializers.PrimaryKeyRelatedField(queryset=Deal.objects.all(), required=False)
+    lead_property = serializers.CharField(source='lead.property', read_only=True)
+    deal_id_display = serializers.CharField(source='deal.deal_id', read_only=True)
     
+    class Meta:
+        model = SetupData
+        fields = '__all__'
