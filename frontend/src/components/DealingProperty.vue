@@ -173,7 +173,7 @@ onMounted(() => fetchDeals());
                     <option v-for="pic in uniqueDealByOptions" :key="pic" :value="pic">{{ pic }}</option>
                 </select>
                 
-                <button @click="() => { searchQuery=''; filterDealBy=''; }" class="text-gray-500 hover:text-red-500 text-sm underline">Reset</button>
+                <button @click="() => { searchQuery=''; filterDealBy=''; }" class="w-16 py-2.5 bg-[#8bc34a] hover:bg-[#7cb342] text-white text-[12px] rounded shadow-sm transition">Reset</button>
             </div>
 
             <div class="flex items-center gap-2 text-sm text-gray-600">
