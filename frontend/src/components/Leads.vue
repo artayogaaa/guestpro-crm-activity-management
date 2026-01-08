@@ -707,9 +707,6 @@ const onChangeDeals = (evt) => {
   }
 };
 
-const addDealDetailRow = () => formDeal.value.details.push({ package: '', product: '', product_amount: 0, product_amount_by: 'Month', initiation: '', initiation_amount: 0 });
-const removeDealDetailRow = (i) => formDeal.value.details.splice(i, 1);
-
 const saveDeal = async () => {
   try {
     const pk = draggedItem.value.lead_id;
@@ -1151,6 +1148,7 @@ onMounted(() => {
     formLead.longitude = place.geometry.location.lng();
   });
 });
+
 </script>
 
 <template>
@@ -1744,7 +1742,7 @@ onMounted(() => {
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
                     <div>
                         <label class="label">Package Name</label>
-                        <select v-model="detail.package" class="input-sm" @change="detail.product = ''">
+                        <select v-model="detail.package" class="gp-input-sm" @change="detail.product = ''">
                             <option value="" disabled>-- Select --</option>
                             <option v-for="pkg in getAvailablePackages(index)" :key="pkg" :value="pkg">{{ pkg }}</option>
                             <option v-if="detail.package && !getAvailablePackages(index).includes(detail.package)" :value="detail.package">{{ detail.package }}</option>
@@ -1752,20 +1750,16 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="label">Product(s)</label>
-                        <select v-model="detail.product" class="input-sm" :disabled="!detail.package">
+                        <select v-model="detail.product" class="gp-input-sm" :disabled="!detail.package">
                             <option value="" disabled>-- Select --</option>
                             <option v-for="prod in getProductsForPackage(detail.package)" :key="prod" :value="prod">{{ prod }}</option>
                         </select>
                     </div>
                     <div>
-                      <label class="gp-label">Product(s)</label>
-                      <input v-model="detail.product" type="text" class="gp-input-sm" placeholder="e.g. PMS, CM, BE">
-                    </div>
-                    <div>
                       <label class="gp-label">Product Amount</label>
                       <div class="flex gap-2">
-                        <input v-model="detail.amount" type="number" class="input-sm">
-                        <select v-model="detail.cycle" class="input-sm w-24"><option>Month</option><option>Year</option><option>One-time</option></select>
+                        <input v-model="detail.amount" type="number" class="gp-input-sm">
+                        <select v-model="detail.cycle" class="gp-input-sm w-24"><option>Month</option><option>Year</option><option>One-time</option></select>
                       </div>
                     </div>
                   </div>
@@ -1783,25 +1777,27 @@ onMounted(() => {
 
                 <div v-for="(detail, index) in formDeal.initiations" :key="'init-'+index" class="bg-gray-50 p-3 rounded border shadow-sm relative">
                   <button type="button" @click="removeDealInitiationRow(index)" class="absolute top-2 right-2 text-red-400 hover:text-red-600"><Trash2 :size="16"/></button>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+                    
                     <div>
-                        <label class="label">Package</label>
-                        <input type="text" class="input-sm bg-gray-100 text-gray-500" value="Initiation" readonly>
-                    </div>
-                    <div>
-                        <label class="label">Initiation (Service)</label>
-                        <select v-model="detail.product" class="input-sm">
+                        <label class="gp-label">Initiation (Service)</label>
+                        <select v-model="detail.product" class="gp-input-sm">
                             <option value="" disabled>-- Select Service --</option>
                             <option v-for="opt in initiationOptions" :key="opt" :value="opt">{{ opt }}</option>
                         </select>
                     </div>
+                    
                     <div>
-                      <label class="label">Initiation Amount</label>
-                      <div class="flex gap-2">
-                        <input v-model="detail.amount" type="number" class="input-sm">
-                        <select class="input-sm w-28 bg-gray-100" disabled><option>One-time Cost</option></select>
+                      <label class="gp-label">Initiation Amount</label>
+                      <div class="relative">
+                        <input v-model="detail.amount" type="number" class="gp-input-sm pr-20">
+                        <span class="absolute right-3 top-2 text-[10px] font-bold text-gray-400 bg-gray-100 px-1 rounded">
+                            One-time
+                        </span>
                       </div>
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -2490,7 +2486,6 @@ onMounted(() => {
                       {{ selectedDeal.deal_by }}
                     </p>
                   </div>
-
                   <div>
                     <label class="gp-label-detail text-green-600">Date In</label>
                     <p class="text-sm font-semibold text-gray-900 flex items-center gap-2">
@@ -2545,23 +2540,63 @@ onMounted(() => {
                     <thead class="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
                       <tr>
                         <th class="p-4 text-left border-b-2">Package</th>
-                        <th class="p-4 text-left border-b-2">Product(s)</th>
+                        <th class="p-4 text-left border-b-2">Product</th>
                         <th class="p-4 text-right border-b-2">Amount</th>
-                        <th class="p-4 text-left border-b-2">Initiation</th>
-                        <th class="p-4 text-right border-b-2">Init. Amount</th>
+                        <th class="p-4 text-right border-b-2">Amount By</th>
                       </tr>
                     </thead>
 
                     <tbody class="divide-y divide-gray-100">
                       <tr v-for="detail in dealDetails.details" :key="detail.id" class="hover:bg-gray-50 transition-colors">
                         <td class="p-4 font-bold text-gray-900">{{ detail.package || '-' }}</td>
-                        <td class="p-4 text-gray-700 font-medium">{{ detail.product || '-' }}</td>
+                        <td class="p-4 text-gray-700 font-medium">{{ detail.product_initiation || '-' }}</td>
                         <td class="p-4 text-right font-bold text-green-600">
-                          {{ detail.product_amount ? detail.product_amount.toLocaleString('id-ID') : '0' }}
+                          {{ detail.product_initiation_amount
+                            ? new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0
+                              }).format(detail.product_initiation_amount)
+                            : 'Rp 0'
+                          }}
                         </td>
-                        <td class="p-4 text-gray-700">{{ detail.initiation || '-' }}</td>
                         <td class="p-4 text-right font-bold text-gray-900">
-                          {{ detail.initiation_amount ? detail.initiation_amount.toLocaleString('id-ID') : '0' }}
+                          {{ detail.product_initiation_amount_by || '-' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-3 border-b">
+                  <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                    <Package :size="14" /> Initiation Fees
+                  </h3>
+                </div>
+
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
+                      <tr>
+                        <th class="p-4 text-left border-b-2">Initiation</th>
+                        <th class="p-4 text-right border-b-2">Amount</th>
+                      </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100">
+                      <tr v-for="detail in dealDetails.details" :key="detail.id" class="hover:bg-gray-50 transition-colors">
+                        <td class="p-4 text-gray-700 font-medium">{{ detail.product_initiation || '-' }}</td>
+                        <td class="p-4 text-right font-bold text-green-600">
+                          {{ detail.product_initiation_amount
+                            ? new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0
+                              }).format(detail.product_initiation_amount)
+                            : 'Rp 0'
+                          }}
                         </td>
                       </tr>
                     </tbody>
