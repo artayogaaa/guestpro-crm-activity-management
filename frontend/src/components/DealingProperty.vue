@@ -223,7 +223,7 @@ onMounted(() => fetchDeals());
             </thead>
 
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="deal in filteredDeals" :key="deal.deal_id" class="group hover:bg-blue-50/10 even:bg-gray-50/50 transition-colors">
+              <tr v-for="deal in filteredDeals" :key="deal.deal_id" class="group hover:bg-blue-50/30 even:bg-gray-100/40 transition-colors">
                 
                 <td class="p-3 border-r border-gray-200 text-center align-middle bg-white group-hover:bg-blue-50/10 sticky left-0 z-10">
                     <div class="flex flex-col gap-1.5 items-center">

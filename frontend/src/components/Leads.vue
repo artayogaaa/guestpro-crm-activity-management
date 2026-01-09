@@ -1418,164 +1418,193 @@ onMounted(() => {
     <!-- All Modals remain exactly the same structure, just updating button styles -->
     <!-- Edit/Add Lead Modal -->
     <Teleport to="body">
-      <div v-if="showEditModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 relative animate-fade-in-up">
-          <div class="sticky top-0 bg-white p-6 border-b z-10 flex justify-between items-center rounded-t-2xl">
-            <h3 class="text-2xl font-bold text-gray-900">{{ isEditing ? 'Edit Data Lead' : 'Tambah Lead Baru' }}</h3>
+      <div v-if="showEditModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40 p-4 overflow-y-auto">
+        <div class="bg-white shadow-2xl w-full max-w-4xl my-8 relative animate-fade-in-up rounded-[1px] overflow-hidden">
+          <div class="sticky top-0 bg-white px-6 py-5 border-b z-10 flex justify-between items-center">
+            <h3 class="text-l text-gray-800">{{ isEditing ? 'Edit Data Lead' : 'Add New Lead' }}</h3>
             <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
-              <X :size="24" />
+              <X :size="18" />
             </button>
           </div>
-          <form @submit.prevent="handleGenericSubmit" class="p-6 space-y-6 max-h-[calc(90vh-140px)] overflow-y-auto">
-            <div class="bg-gradient-to-br from-gray-50 to-gray-100/50 p-5 rounded-xl border border-gray-200">
-              <h4 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Informasi Properti</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                  <label class="gp-label">Nama Properti</label>
-                  <input v-model="formLead.property" type="text" class="gp-input" required>
-                </div>
-                
-                <div>
-                  <label class="gp-label">Source</label>
-                  <select v-model="formLead.source" class="gp-input">
-                    <optgroup label="Inbound">
-                      <option v-for="src in inboundSources" :key="src" :value="src">{{ src }}</option>
-                    </optgroup>
-                    <optgroup label="Outbound">
-                      <option value="Cold Calling">Cold Calling</option>
-                      <option value="Canvassing">Canvassing</option>
-                      <option value="Campaign">Campaign</option>
-                      <option value="Free Trial">Free Trial</option>
-                      <option value="Relational">Relational</option>
-                    </optgroup>
-                  </select>
-                </div>
 
-                <div v-if="isReferralOrAffiliate" class="md:col-span-2 bg-blue-50 border border-blue-200 p-4 rounded-xl grid grid-cols-2 gap-4 animate-fade-in">
+          <form @submit.prevent="handleGenericSubmit" class="p-6 space-y-8 max-h-[calc(90vh-140px)] overflow-y-auto">
+            
+            <div class="space-y-5">
+              <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="gp-label text-blue-700">{{ referralLabel }}</label>
-                    <input v-model="formLead.referral_or_affiliate_by" type="text" class="gp-input border-blue-300 focus:ring-blue-500" placeholder="Nama Pemberi Referensi">
+                    <label class="block text-[12px] font-normal text-black-700 mb-1.5">
+                      Property Name <span class="text-red-500">*</span>
+                    </label>
+                    <input v-model="formLead.property" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent" required>
                   </div>
-                  <div>
-                    <label class="gp-label text-blue-700">Commission Amount</label>
-                    <input v-model="formLead.commission_amount" type="text" class="gp-input border-blue-300 focus:ring-blue-500" placeholder="e.g. 10% or 500000">
-                  </div>
-                </div>
-
-                <div>
-                  <label class="gp-label">Type</label>
-                  <input v-model="formLead.type" type="text" class="gp-input">
-                </div>
-                <div>
-                  <label class="gp-label">GuestPro PIC</label>
-                  <select v-model="formLead.gp_pic" class="gp-input" required>
-                    <option v-for="pic in picList" :key="pic" :value="pic">{{ pic }}</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="gp-label">Date In</label>
-                  <input v-model="formLead.date_in" type="date" class="gp-input" required>
-                </div>
-                
-                <div class="md:col-span-2">
-                  <label class="gp-label">Koordinat (Latitude, Longitude)</label>
-                  <input 
-                    v-model="formLead.coordinates" 
-                    type="text" 
-                    class="gp-input font-mono text-sm" 
-                    placeholder="contoh: -7.797068, 110.370529"
-                    readonly
-                  >
-                  <p class="text-xs text-gray-500 mt-1.5">💡 Gunakan peta di bawah untuk memilih lokasi</p>
-                </div>
-                
-                <!-- MAP SECTION -->
-                <div class="md:col-span-2">
-                  <label class="gp-label">Alamat Lengkap</label>
                   
-                  <div class="flex gap-2 mb-3">
-                    <input
-                      v-model="mapSearchQuery"
-                      type="text"
-                      class="gp-input flex-1"
-                      placeholder="Cari lokasi (contoh: Bandara Ngurah Rai)"
-                      @keyup.enter="searchLocation"
-                    />
-                    <button 
-                      type="button" 
-                      @click="searchLocation" 
-                      class="gp-btn-primary px-5"
+                  <div>
+                    <label class="block text-[12px] font-normal text-black-700 mb-1.5">Source <span class="text-red-500">*</span></label>
+                    <select v-model="formLead.source" class=" rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent">
+                      <optgroup label="Inbound">
+                        <option v-for="src in inboundSources" :key="src" :value="src">{{ src }}</option>
+                      </optgroup>
+                      <optgroup label="Outbound">
+                        <option value="Cold Calling">Cold Calling</option>
+                        <option value="Canvassing">Canvassing</option>
+                        <option value="Campaign">Campaign</option>
+                        <option value="Free Trial">Free Trial</option>
+                        <option value="Relational">Relational</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                </div>
+
+                <div v-if="isReferralOrAffiliate" class=" grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                  <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">{{ referralLabel }}</label>
+                    <input v-model="formLead.referral_or_affiliate_by" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent">
+                  </div>
+                  <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">Commission Amount</label>
+                    <input v-model="formLead.commission_amount" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent">
+                    <p><span class="text-[10px] text-gray-500">bisa diisi dengan % dan number</span></p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">Type <span class="text-red-500">*</span></label>
+                    <input v-model="formLead.type" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent">
+                  </div>
+                  
+                  <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">
+                      GuestPro PIC <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                      v-model="formLead.gp_pic"
+                      class="w-full px-3 py-2 border border-gray-300 text-[12px]
+                            focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent"
+                      required
                     >
-                      Cari
-                    </button>
+                      <option v-for="pic in picList" :key="pic" :value="pic">
+                        {{ pic }}
+                      </option>
+                    </select>
                   </div>
+                </div>
 
-                  <div
-                    ref="mapContainer"
-                    class="w-full h-64 rounded-xl border-2 border-gray-200 mb-3 overflow-hidden shadow-inner"
-                  ></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">
+                      Date In <span class="text-red-500">*</span>
+                    </label>
+                    <input v-model="formLead.date_in" type="date" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent" required>
+                  </div>
+                </div>
 
-                  <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-200">
-                    <div class="flex items-start gap-3">
-                      <div class="flex-1 space-y-2">
-                        <div class="flex items-center gap-2">
-                          <span class="text-xs font-bold text-gray-600 uppercase">Koordinat:</span>
-                          <span class="font-mono text-sm text-gray-900 bg-white px-3 py-1 rounded-lg border shadow-sm">
-                            {{ formLead.coordinates || 'Belum dipilih' }}
-                          </span>
-                        </div>
-                        <div class="flex items-start gap-2">
-                          <span class="text-xs font-bold text-gray-600 uppercase shrink-0">Alamat:</span>
-                          <span class="text-sm text-gray-700 font-medium">
-                            {{ formLead.address || 'Klik/drag marker atau search untuk memilih lokasi' }}
-                          </span>
-                        </div>
-                      </div>
+                <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">Address</label>
+                    
+                    <div class="flex gap-2 mb-3">
+                      <input
+                        v-model="mapSearchQuery"
+                        type="text"
+                        class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent"
+                        @keyup.enter="searchLocation"
+                      />
+                      <button 
+                        type="button" 
+                        @click="searchLocation" 
+                        class="px-5 py-2 text-[12px] bg-[#8BC34A] text-white hover:bg-[#7CB342] transition-colors font-medium rounded-[1px]"
+                      >
+                        Search
+                      </button>
                     </div>
+
+                    <div
+                      ref="mapContainer"
+                      class="w-full h-64 border border-gray-300 mb-3 overflow-hidden rounded-[1px]"
+                    ></div>
+                </div>
+
+                <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">Edit Address
+                      <span class="text-red-500">*</span></label>
+                    <input 
+                      v-model="formLead.address" 
+                      type="text" 
+                      class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent" requireds 
+                    >
+                    <p><span class="text-[10px] text-gray-500"><span class="text-grey-700">**</span> Edit Address if the address is incorrect (optional)</span></p>
                   </div>
 
-                  <div class="mt-3">
-                    <label class="gp-label">Edit Alamat Manual (Opsional)</label>
-                    <textarea 
-                      v-model="formLead.address" 
-                      rows="2" 
-                      class="gp-input text-sm" 
-                      placeholder="Atau ketik/edit alamat manual di sini..."
-                    ></textarea>
+                <div> 
+                  <div>
+                    <label class="block text-[12px] font-normal text-black mb-1.5">Coordinates
+                      <span class="text-red-500">*</span></label>
+                    <input 
+                      v-model="formLead.coordinates" 
+                      type="text" 
+                      class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent" requireds
+                      readonly
+                    >
+                    <p><span class="text-[10px] text-gray-500"><span class="text-grey-700">**</span> Gunakan peta di atas untuk memilih lokasi</span></p>
                   </div>
+                  
+                  
                 </div>
               </div>
             </div>
 
-            <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div class="bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Daftar PIC</h4>
-                <button type="button" @click="addPicRowEdit" class="gp-btn-primary text-sm">
-                  <Plus :size="14"/> Tambah PIC
-                </button>
-              </div>
-              <div class="p-4 space-y-3 max-h-64 overflow-y-auto bg-gray-50">
-                <div v-for="(pic, index) in formLead.pics" :key="index" class="flex gap-2 items-start bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1">
-                    <input v-model="pic.pic_name" type="text" class="gp-input-sm" placeholder="Nama PIC" required>
-                    <input v-model="pic.phone_number" type="text" class="gp-input-sm" placeholder="No HP">
-                    <input v-model="pic.whatsapp" type="text" class="gp-input-sm" placeholder="WhatsApp">
-                    <input v-model="pic.email" type="email" class="gp-input-sm" placeholder="Email">
-                  </div>
-                  <button type="button" @click="removePicRowEdit(index)" class="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all mt-0.5">
-                    <Trash2 :size="16" />
+            <div>
+              <div>
+                <div class="bg-gray-10 px py-3 border-b flex justify-between items-center">
+                  <h4 class="text-[14px] font-normal text-black">Property PIC Contact Info</h4>
+                  <button type="button" @click="addPicRowEdit" class="px-5 py-2 text-[12px] bg-[#8BC34A] text-white hover:bg-[#7CB342] transition-colors font-medium rounded-[1px]">
+                  Add PIC
                   </button>
                 </div>
+                <table class="w-full">
+                  <thead>
+                    <tr class="bg-white border-b ">
+                      <th class="text-left px-3 py-2 text-[12px] font-normal text-black">Action</th>
+                      <th class="text-left px-3 py-2 text-[12px] font-normal text-black">PIC Name</th>
+                      <th class="text-left px-3 py-2 text-[12px] font-normal text-black">Phone Number</th>
+                      <th class="text-left px-3 py-2 text-[12px] font-normal text-black">WhatsApp Number</th>
+                      <th class="text-left px-3 py-2 text-[12px] font-normal text-black">Email</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(pic, index) in formLead.pics" :key="index" class="bg-gray-10 border-gray-200">
+                      <td class="px-3 py-3">
+                        <button type="button" @click="removePicRowEdit(index)" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors">
+                          <Trash2 :size="16" />
+                        </button>
+                      </td>
+                      <td class="px-3 py-3">
+                        <input v-model="pic.pic_name" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent" placeholder="PIC Name" required>
+                      </td>
+                      <td class="px-3 py-3">
+                        <input v-model="pic.phone_number" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent " placeholder="Phone Number" required>
+                      </td>
+                      <td class="px-3 py-3">
+                        <input v-model="pic.whatsapp" type="text" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent " placeholder="WhatsApp Number" required>
+                      </td>
+                      <td class="px-3 py-3">
+                        <input v-model="pic.email" type="email" class="rounded-[1px] w-full px-3 py-2 border border-gray-300 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#8BC34A] focus:border-transparent " placeholder="Email" required>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
+
           </form>
 
-          <div class="sticky bottom-0 pt-4 px-6 pb-6 flex justify-end gap-3 border-t bg-white rounded-b-2xl z-20">
-            <button type="button" @click="closeModal" class="gp-btn-secondary">
-              Batal
+          <div class="sticky bottom-0 px-6 py-4 flex justify-end gap-3 border-t bg-white rounded-b-lg">
+            <button type="submit" @click="handleGenericSubmit" class="px-5 py-2 text-[12px] bg-[#8BC34A] text-white hover:bg-[#7CB342] transition-colors font-medium rounded-[1px]">
+              Save
             </button>
-            <button type="submit" @click="handleGenericSubmit" class="gp-btn-primary">
-              <Save :size="16" /> Simpan
+            <button type="button" @click="closeModal" class="px-3 py-2 text-[12px] bg-[#dd9c02] text-white hover:bg-[#b87f02] transition-colors font-medium rounded-[1px]">
+              Cancel
             </button>
           </div>
         </div>
@@ -1696,7 +1725,7 @@ onMounted(() => {
               </div>
               <div>
                 <div class="text-xs text-green-700 font-bold uppercase tracking-wide">Property Name</div>
-                <div class="text-xl font-bold text-gray-900 mt-1">{{ draggedItem?.property }}</div>
+                <div class="text-xs font-bold text-gray-900 mt-1">{{ draggedItem?.property }}</div>
               </div>
             </div>
 
@@ -1969,7 +1998,7 @@ onMounted(() => {
                       <div class="flex-1 space-y-2">
                         <div class="flex items-center gap-2">
                           <span class="text-xs font-bold text-gray-600 uppercase">Koordinat:</span>
-                          <span class="font-mono text-sm text-gray-900 bg-white px-3 py-1 rounded-lg border shadow-sm">
+                          <span class=" text-sm text-gray-900 bg-white px-3 py-1 rounded-lg border shadow-sm">
                             {{ formLead.coordinates || 'Belum dipilih' }}
                           </span>
                         </div>
@@ -3144,5 +3173,10 @@ onMounted(() => {
 .leaflet-top,
 .leaflet-bottom {
   z-index: 2 !important;
+}
+
+select option:checked {
+  background-color: #8BC34A !important;
+  color: white !important;
 }
 </style>
