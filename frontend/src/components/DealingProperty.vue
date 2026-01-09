@@ -154,7 +154,7 @@ onMounted(() => fetchDeals());
 <template>
   <MainLayout>
     <div class="pt-24"></div>
-    <div class="flex flex-col h-[calc(100vh-80px)] bg-gray-50 p-4">
+    <div class="flex flex-col h-[calc(100vh-80px)] bg-gray-50 px-0 py-0">
       
       <div class="mb-6">
          <h1 class="text-2xl font-bold text-gray-800 mb-4">Dealing Property</h1>

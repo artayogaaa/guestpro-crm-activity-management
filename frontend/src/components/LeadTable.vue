@@ -269,7 +269,7 @@ onMounted(() => fetchLeads());
 <template>
   <MainLayout>
     <div class="pt-20"></div>
-    <div class="flex flex-col h-[calc(100vh-80px)] bg-gray-50 p-4">
+    <div class="flex flex-col h-[calc(100vh-80px)] bg-gray-50 py-4">
       
       <!-- Header & Filters -->
       <div class="mb-6">
@@ -504,7 +504,7 @@ onMounted(() => fetchLeads());
                   </div>
                   <div v-else class="p-4 h-full flex items-center">
                     <span 
-                      class="px-2 py-1 rounded-full text-[10px] font-bold"
+                      class="px-2 py-1 rounded text-[10px] font-bold"
                       :class="getStatusBadgeClass(lead.status_kanban)"
                     >
                       {{ getStatusLabel(lead.status_kanban) }}

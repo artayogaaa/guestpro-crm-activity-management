@@ -89,13 +89,13 @@ onMounted(() => { fetchActivities(); });
 
 <template>
   <MainLayout>
-    <div class="pt-28"></div>
-    <div class="flex justify-between items-center mb-6">
+    <div class="pt-24"></div>
+    <div class="flex justify-between items-center mb-6 py-1">
       <div>
         <h1 class="text-2xl font-bold text-gray-800">Activity List</h1>
         <p class="text-gray-500">Kelola kegiatan harian Anda di sini.</p>
       </div>
-      <button @click="openFormModal()" class="bg-[#8bc34a] hover:bg-[#7cb342] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
+      <button @click="openFormModal()" class="bg-[#8bc34a] hover:bg-[#7cb342] text-white text-xs px-4 py-2 flex items-center gap-2 transition">
         <Plus :size="20" /> Tambah Data
       </button>
     </div>
@@ -118,7 +118,7 @@ onMounted(() => { fetchActivities(); });
             </td>
             <td class="p-4 text-gray-600">{{ item.date }}</td>
             <td class="p-4">
-              <span class="px-3 py-1 rounded-full text-xs font-semibold" :class="item.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">
+              <span class="px-3 py-1 rounded text-xs font-semibold" :class="item.status === 'completed' ? 'bg-[#8bc34a] text-white' : 'bg-amber-100 text-amber-700'">
                 {{ item.status === 'completed' ? 'Selesai' : 'Pending' }}
               </span>
             </td>
@@ -149,7 +149,7 @@ onMounted(() => { fetchActivities(); });
           </div>
           <div class="pt-4 flex gap-3">
             <button type="button" @click="closeFormModal" class="flex-1 bg-gray-100 py-2 rounded-lg">Batal</button>
-            <button type="submit" class="flex-1 bg-[#65a30d] text-white py-2 rounded-lg">Simpan</button>
+            <button type="submit" class="flex-1 bg-[#8bc34a] text-white py-2 rounded-lg">Simpan</button>
           </div>
         </form>
       </div>

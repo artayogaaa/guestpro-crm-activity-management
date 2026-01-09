@@ -1165,7 +1165,7 @@ onMounted(() => {
       <div class="pipeline-board">
         <!-- Lead Generation Column -->
       <!-- Lead Generation Column -->
-      <div class="min-w-[320px] bg-white rounded-2xl p-4 flex flex-col gap-3 h-full shadow-sm border border-gray-100">
+      <div class="min-w-[320px] bg-white p-4 flex flex-col gap-3 h-full shadow-sm border border-gray-100">
         <div class="flex justify-between items-center px-2">
           <h3 class="font-bold text-gray-900 text-lg">Lead Generation</h3>
           <div class="flex items-center gap-2">
@@ -1177,10 +1177,10 @@ onMounted(() => {
         </div>
         
         <!-- Inbound Section -->
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 p-3 rounded-xl border border-blue-200/50 flex-1 flex flex-col">
+        <div class="bg-white p-3 border rounded border-gray-400 flex-1 flex flex-col">
           <div class="flex justify-between items-center mb-3">
-            <h4 class="text-xs font-bold text-blue-700 uppercase tracking-wide">Inbound</h4>
-            <span class="text-[10px] font-bold bg-blue-600 text-white px-2.5 py-1 rounded-full shadow-sm">{{ leadsGenInbound.length }}</span>
+            <h4 class="text-xs font-bold text-gray-600 uppercase tracking-wide">Inbound</h4>
+            <span class="text-[10px] font-bold bg-gray-200 text-black px-2.5 py-1  shadow-sm">{{ leadsGenInbound.length }}</span>
           </div>
           <draggable 
             v-model="leadsGenInbound" 
@@ -1199,7 +1199,7 @@ onMounted(() => {
                   </button>
                 </div>
                 <div class="font-bold text-gray-900 text-sm mb-1.5 pr-12 line-clamp-2">{{ element.property }}</div>
-                <div class="text-xs font-semibold text-blue-600 mb-2">{{ element.source }}</div>
+                <div class="text-xs font-semibold text-gray-600 mb-2">{{ element.source }}</div>
                 <div class="text-xs text-gray-600 flex items-center gap-1.5">
                   <User :size="12" class="text-gray-400" /> 
                   <span class="font-medium">{{ element.gp_pic }}</span>
@@ -1210,10 +1210,10 @@ onMounted(() => {
         </div>
 
         <!-- Outbound Section -->
-        <div class="bg-gradient-to-br from-orange-50 to-orange-100/50 p-3 rounded-xl border border-orange-200/50 flex-1 flex flex-col mt-2">
+        <div class="bg-white p-3 border rounded border-gray-400 flex-1 flex flex-col mt-2">
           <div class="flex justify-between items-center mb-3">
-            <h4 class="text-xs font-bold text-orange-700 uppercase tracking-wide">Outbound</h4>
-            <span class="text-[10px] font-bold bg-orange-600 text-white px-2.5 py-1 rounded-full shadow-sm">{{ leadsGenOutbound.length }}</span>
+            <h4 class="text-xs font-bold text-gray-600 uppercase tracking-wide">Outbound</h4>
+            <span class="text-[10px] font-bold bg-gray-200 text-black px-2.5 py-1 shadow-sm">{{ leadsGenOutbound.length }}</span>
           </div>
           <draggable 
             v-model="leadsGenOutbound" 
@@ -1232,7 +1232,7 @@ onMounted(() => {
                   </button>
                 </div>
                 <div class="font-bold text-gray-900 text-sm mb-1.5 pr-12 line-clamp-2">{{ element.property }}</div>
-                <div class="text-xs font-semibold text-orange-600 mb-2">{{ element.source }}</div>
+                <div class="text-xs font-semibold text-gray-600 mb-2">{{ element.source }}</div>
                 <div class="text-xs text-gray-600 flex items-center gap-1.5">
                   <User :size="12" class="text-gray-400" /> 
                   <span class="font-medium">{{ element.gp_pic }}</span>
@@ -1259,7 +1259,7 @@ onMounted(() => {
           <template #item="{element}">
             <div @dblclick="openActivityModal(element, 'followup')" class="gp-card border-l-4 border-yellow-400 hover:border-yellow-500">
               <div class="font-bold text-gray-900 text-sm mb-1.5 line-clamp-2">{{ element.property }}</div>
-              <div class="text-xs font-semibold mb-2" :class="inboundSources.includes(element.source) ? 'text-blue-600' : 'text-orange-600'">
+              <div class="text-xs font-semibold mb-2" :class="inboundSources.includes(element.source) ? 'text-gray-600' : 'text-gray-600'">
                 {{ element.source }}
               </div>
               <div class="text-xs text-gray-600 flex items-center gap-1.5 mb-3">
@@ -1293,7 +1293,7 @@ onMounted(() => {
           <template #item="{element}">
             <div @dblclick="openActivityModal(element, 'quotation')" class="gp-card border-l-4 border-purple-400 hover:border-purple-500">
               <div class="font-bold text-gray-900 text-sm mb-1.5 line-clamp-2">{{ element.property }}</div>
-              <div class="text-xs font-semibold mb-2" :class="inboundSources.includes(element.source) ? 'text-blue-600' : 'text-orange-600'">
+              <div class="text-xs font-semibold mb-2" :class="inboundSources.includes(element.source) ? 'text-gray-600' : 'text-gray-600'">
                 {{ element.source }}
               </div>
               <div class="text-xs text-gray-600 flex items-center gap-1.5 mb-3">
@@ -1362,7 +1362,7 @@ onMounted(() => {
               <div class="space-y-2">
                 <!-- Source Badge -->
                 <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-semibold px-2 py-0.5 rounded-md" :class="inboundSources.includes(element.source) ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-md" :class="inboundSources.includes(element.source) ? 'bg-gray-200 text-black border-1px' : 'bg-orange-100 text-orange-700'">
                     {{ element.source }}
                   </span>
                 </div>
@@ -1382,10 +1382,10 @@ onMounted(() => {
                 <!-- Status Indicator -->
                 <div class="pt-2 mt-2 border-t border-gray-100">
                   <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wide">In Progress</span>
+                    <span class="text-[10px] font-bold text-gray-600 uppercase tracking-wide">In Progress</span>
                     <div class="flex gap-1">
-                      <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                      <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                      <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                      <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                       <div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
                     </div>
                   </div>
@@ -1838,11 +1838,11 @@ onMounted(() => {
             </div>
             
             <div class="px-6 pt-4 pb-0">
-              <div class="flex gap-2 bg-gray-100 p-1.5 rounded-xl overflow-x-auto shadow-inner">
-                <button type="button" @click="activeDragTab = 'followup'" class="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap" :class="activeDragTab === 'followup' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-500 hover:bg-gray-200'">
+              <div class="flex gap-2 bg-gray-100 p-1.5 overflow-x-auto shadow-inner">
+                <button type="button" @click="activeDragTab = 'followup'" class="flex-1 py-2.5 text-xs rounded font-bold transition-all whitespace-nowrap" :class="activeDragTab === 'followup' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:bg-gray-200'">
                   Form Follow Up
                 </button>
-                <button type="button" @click="activeDragTab = 'meeting'" class="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap" :class="activeDragTab === 'meeting' ? 'bg-white text-orange-600 shadow-md' : 'text-gray-500 hover:bg-gray-200'">
+                <button type="button" @click="activeDragTab = 'meeting'" class="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap" :class="activeDragTab === 'meeting' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:bg-gray-200'">
                   Form Meeting
                 </button>
                 <button v-if="modalMode !== 'drag'" type="button" @click="activeDragTab = 'quotation'" class="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap" :class="activeDragTab === 'quotation' ? 'bg-white text-purple-600 shadow-md' : 'text-gray-500 hover:bg-gray-200'">
@@ -3026,7 +3026,7 @@ onMounted(() => {
 .pipeline-container {
   @apply w-full;
   position: relative;
-  padding-top: 1.5rem;
+  padding-top: 1rem;
 }
 
 .pipeline-header {

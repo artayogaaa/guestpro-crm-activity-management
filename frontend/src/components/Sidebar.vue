@@ -44,11 +44,11 @@ const menuItems = [
         v-for="item in menuItems" 
         :key="item.name" 
         :to="item.route" 
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition relative group"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-[#E8F5E9] hover:text-[#8bc34a] transition relative group"
         :class="{
             'justify-center': isSidebarCollapsed, 
-            'bg-blue-50 text-blue-700 font-semibold': $route.path === item.route && isSidebarCollapsed,
-            'bg-blue-50 text-blue-700 font-semibold pl-4': $route.path === item.route && !isSidebarCollapsed
+            'bg-[#E8F5E9] text-[#8bc34a] font-semibold': $route.path === item.route && isSidebarCollapsed,
+            'bg-[#E8F5E9] text-[#8bc34a] font-semibold pl-4': $route.path === item.route && !isSidebarCollapsed
         }"
       >
         <component :is="item.icon" :size="18" />
@@ -77,7 +77,7 @@ const menuItems = [
 <style scoped>
 /* Menghilangkan border dan background default router-link-active */
 .router-link-active {
-  /* Class `bg-blue-50 text-blue-700 font-semibold` sudah di inline */
+  /* Class `bg-[#E8F5E9] text-[#8bc34a] font-semibold` sudah di inline */
 }
 
 /* Tooltip style - make it show on hover when collapsed */
